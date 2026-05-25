@@ -37,6 +37,13 @@ from .messages import (
     UserInfo,
     WelcomeS2C,
 )
+from .replay import (
+    GameEndEvt,
+    GameStartEvt,
+    ReplayEnvelope,
+    ReplayEvent,
+    TickResultEvt,
+)
 
 __all__ = [
     "decode_client",
@@ -51,7 +58,9 @@ __all__ = [
     "ClientMessage",
     "ErrorCode",
     "ErrorS2C",
+    "GameEndEvt",
     "GameEndS2C",
+    "GameStartEvt",
     "GameStartS2C",
     "GuestAuth",
     "HelloC2S",
@@ -62,9 +71,12 @@ __all__ = [
     "QueueC2S",
     "QueuedS2C",
     "RatingUpdateS2C",
+    "ReplayEnvelope",
+    "ReplayEvent",
     "ResignC2S",
     "ServerMessage",
     "TickRequestS2C",
+    "TickResultEvt",
     "TickResultS2C",
     "UserInfo",
     "WelcomeS2C",
