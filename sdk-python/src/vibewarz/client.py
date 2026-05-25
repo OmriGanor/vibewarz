@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import AsyncIterator
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 import websockets
@@ -31,6 +32,17 @@ from .protocol import (
     decode_server,
     encode_client,
 )
+
+
+def _pkg_version() -> str:
+    """Resolve the installed `vibewarz` version, used as a build tag on the
+    wire. Falls back to "dev" when running from a source checkout that
+    wasn't pip-installed (so the package metadata isn't registered).
+    """
+    try:
+        return version("vibewarz")
+    except PackageNotFoundError:
+        return "dev"
 
 
 class Client:
@@ -69,7 +81,7 @@ class Client:
         assert self._ws is not None
         hello = HelloC2S(
             id=uuid.uuid4().hex[:8],
-            sdk_version="0.1.0",
+            sdk_version=f"python-{_pkg_version()}",
             auth=self._build_auth(),
         )
         await self._ws.send(encode_client(hello))
@@ -103,8 +115,14 @@ class Client:
         )
 
 
+# Public production WS endpoint. Override with VIBEWARZ_API_URL when
+# pointing at a local dev server or a staging environment, e.g.
+#   export VIBEWARZ_API_URL=ws://localhost:10000/ws
+DEFAULT_API_URL = "wss://api.vibewarz.com/ws"
+
+
 def default_api_url() -> str:
-    return os.environ.get("VIBEWARZ_API_URL", "ws://localhost:10000/ws")
+    return os.environ.get("VIBEWARZ_API_URL", DEFAULT_API_URL)
 
 
 def api_http_url(ws_url: str | None = None) -> str:
