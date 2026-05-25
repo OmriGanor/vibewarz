@@ -21,17 +21,20 @@ jobs:
       - name: Build vibewarz
         working-directory: sdk-python
         run: uv build
+      # Auth is via PyPI trusted publishing (OIDC). The job-level
+      # `environment: pypi` + `permissions: id-token: write` above are
+      # the GitHub side; the matching trusted-publisher entries live in
+      # the PyPI project settings for both `vibewarz` and `vibewarz-games`.
+      # No UV_PUBLISH_TOKEN — setting it (even to an empty secret) forces
+      # uv into token-mode and breaks the OIDC handshake.
+      #
       # `uv build` in a workspace member writes artifacts to the workspace
-      # ROOT's dist/, not the member's own dist/. So both publish steps
-      # run from the repo root and target one package via an explicit
-      # glob. `--check-url` makes publish idempotent (skips files PyPI
-      # already serves), so tagging a release that bumps only one of the
-      # two packages is fine.
+      # ROOT's dist/, not the member's own dist/. Both publish steps run
+      # from the repo root and target one package via an explicit glob.
+      # `--check-url` makes publish idempotent (skips files PyPI already
+      # serves), so tagging a release that bumps only one of the two
+      # packages is fine.
       - name: Publish vibewarz-games to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: uv publish --check-url https://pypi.org/simple/ dist/vibewarz_games-*
       - name: Publish vibewarz to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: uv publish --check-url https://pypi.org/simple/ dist/vibewarz-*
