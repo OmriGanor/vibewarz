@@ -13,12 +13,14 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import AsyncIterator
-from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 import websockets
 from websockets.asyncio.client import ClientConnection
 
+# Use the package-level __version__ (sourced from importlib.metadata in
+# __init__.py) so the wire tag and `vibewarz.__version__` can never drift.
+from . import __version__
 from .protocol import (
     ApiKeyAuth,
     AuthPayload,
@@ -32,17 +34,6 @@ from .protocol import (
     decode_server,
     encode_client,
 )
-
-
-def _pkg_version() -> str:
-    """Resolve the installed `vibewarz` version, used as a build tag on the
-    wire. Falls back to "dev" when running from a source checkout that
-    wasn't pip-installed (so the package metadata isn't registered).
-    """
-    try:
-        return version("vibewarz")
-    except PackageNotFoundError:
-        return "dev"
 
 
 class Client:
@@ -81,7 +72,7 @@ class Client:
         assert self._ws is not None
         hello = HelloC2S(
             id=uuid.uuid4().hex[:8],
-            sdk_version=f"python-{_pkg_version()}",
+            sdk_version=f"python-{__version__}",
             auth=self._build_auth(),
         )
         await self._ws.send(encode_client(hello))
