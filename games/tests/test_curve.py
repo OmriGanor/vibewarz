@@ -219,6 +219,17 @@ def test_state_carries_powerup_fields(curve: Curve) -> None:
         assert p["effects"] == {}
 
 
+def test_view_for_never_leaks_seed(curve: Curve) -> None:
+    """Curve uses the default `view_for` (no hidden info), but the seed
+    must still be stripped: it drives deterministic powerup spawn coords,
+    so a client that learns it can predict future spawn positions.
+    """
+    state = curve.initial_state(seed=42, num_players=4)
+    assert state["seed"] == 42  # authoritative state retains it
+    for seat in range(4):
+        assert "seed" not in curve.view_for(state, seat)
+
+
 def test_powerup_spawns_at_interval(curve: Curve) -> None:
     state = curve.initial_state(seed=7, num_players=4)
     actions = _all_straight()

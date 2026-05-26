@@ -12,7 +12,7 @@ S→C welcome | error                    # session opens
 C→S queue                              # enter matchmaking
 S→C queued
 S→C match_found                        # paired with N-1 opponents
-S→C game_start                         # initial state, seed
+S→C game_start                         # initial state (seed is server-only)
 loop:
   S→C tick_request                     # asks for THIS bot's action
   C→S action                           # one per tick, may be omitted (default substituted)
@@ -106,10 +106,8 @@ Initial state. For Curve, this includes the **full** initial trails (subsequent 
   "type": "game_start",
   "ts": 1716246013500,
   "match_id": "m_abc",
-  "seed": 4815162342,
   "state": {
     "tick": 0,
-    "seed": 4815162342,
     "arena": {"w": 1000, "h": 1000},
     "speed": 4.0,
     "turn_rate_deg": 6.0,

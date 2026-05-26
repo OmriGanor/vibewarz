@@ -88,6 +88,16 @@ def test_initial_state_is_seeded(blast: Blast) -> None:
     assert a["board"] != c["board"]
 
 
+def test_view_for_never_leaks_seed(blast: Blast) -> None:
+    """The per-tick RNG (`_step_rng`) is derived from `(seed, tick)`. The
+    authoritative state keeps the seed; per-seat views must not.
+    """
+    state = blast.initial_state(seed=7, num_players=4)
+    assert state["seed"] == 7
+    for seat in range(4):
+        assert "seed" not in blast.view_for(state, seat)
+
+
 def test_wrong_player_count(blast: Blast) -> None:
     with pytest.raises(ValueError):
         blast.initial_state(seed=1, num_players=1)

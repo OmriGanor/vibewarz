@@ -87,15 +87,21 @@ class Game(ABC):
         return self.alive_seats(state)
 
     def view_for(self, state: dict, seat: int) -> dict:
-        """Per-seat view of state. Default: identical to the authoritative
-        state — appropriate for public-information games.
+        """Per-seat view of state. Default: a shallow copy with `seed` removed
+        — appropriate for public-information games where the only secret is
+        the RNG seed itself.
 
         Hidden-information games (poker hole cards, fog of war, etc.) override
-        this to strip fields owned by other seats. The unredacted state is
-        retained for replay journaling and the next engine step; the redacted
-        view is only what travels over the wire to that seat.
+        this to strip additional fields owned by other seats; overrides MUST
+        also omit `seed`. The unredacted state is retained for replay
+        journaling and the next engine step; the redacted view is the only
+        thing that travels over the wire to that seat.
+
+        Why `seed` is server-only: the RNG is deterministic, so any client
+        that learns the seed can locally reproduce the engine and predict
+        future events (e.g. opponents' hole cards in poker).
         """
-        return state
+        return {k: v for k, v in state.items() if k != "seed"}
 
     def render_ascii(self, state: dict) -> str:
         return ""

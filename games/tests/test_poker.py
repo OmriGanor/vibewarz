@@ -304,6 +304,24 @@ def test_view_for_redacts_other_seats_hole_cards():
     assert v0["deck"] == []  # deck never leaked
 
 
+def test_view_for_never_leaks_seed():
+    """Regression: the seed used to shuffle the deck is deterministic, so
+    leaking it lets a client locally reproduce every opponent's hole cards
+    via `new_shuffled_deck(seed, hand_number)`. The per-seat view MUST omit
+    `seed`; the authoritative state retains it for server-side replay.
+    """
+    p = Poker()
+    s = p.initial_state(seed=99, num_players=3)
+    assert s["seed"] == 99  # authoritative state still has it
+    for seat in range(3):
+        v = p.view_for(s, seat)
+        assert "seed" not in v, f"seed leaked to seat {seat}"
+    # Also at showdown — the seed is still secret for any subsequent hand.
+    s_showdown = {**s, "showdown_hands": {0: "X", 1: "Y", 2: "Z"}}
+    for seat in range(3):
+        assert "seed" not in p.view_for(s_showdown, seat)
+
+
 def test_view_for_reveals_all_at_showdown():
     p = Poker()
     s = p.initial_state(seed=99, num_players=2)

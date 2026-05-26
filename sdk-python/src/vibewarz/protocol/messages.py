@@ -119,11 +119,15 @@ class MatchFoundS2C(BaseModel):
 
 
 class GameStartS2C(BaseModel):
+    # Note: the match seed is intentionally NOT included on the wire. It is
+    # server-only — leaking it would let a client locally re-run the
+    # deterministic engine and reveal hidden information (e.g. opponents'
+    # hole cards in poker). Replays record the seed server-side and are
+    # fetched post-match via the replay API.
     type: Literal["game_start"] = "game_start"
     ts: int
     match_id: str
     state: dict[str, Any]
-    seed: int
 
 
 class TickRequestS2C(BaseModel):
