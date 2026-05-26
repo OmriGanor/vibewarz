@@ -151,4 +151,4 @@ def test_tick_result_actions_parses_string_keys() -> None:
         }
     )
     assert evt.actions == {0: {"turn": "left"}, 1: None, 2: {"turn": "right"}}
-    assert all(isinstance(k, int) for k in evt.actions.keys())
+    assert all(isinstance(k, int) for k in evt.actions)
