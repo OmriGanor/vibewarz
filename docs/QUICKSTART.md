@@ -66,7 +66,13 @@ vibewarz play-local --game curve \
 
 ## State shape per game
 
-The full wire format lives in [PROTOCOL.md](PROTOCOL.md). For local play the `state` your bot receives is the same dict the server's `Game.view_for(state, seat)` returns. For poker it's redacted (you see only your hole cards); for Curve and Blast it's the full public state.
+Each game has its own action format and state dict. Full reference per game:
+
+- [Curve](games/curve.md) — turn LEFT/STRAIGHT/RIGHT, avoid walls and trails
+- [Blast](games/blast.md) — grid movement + bomb drops, dodge flames
+- [Poker](games/poker.md) — fold/check/call/bet/raise with hidden hole cards
+
+For local play the `state` your bot receives is the same dict the server's `Game.view_for(state, seat)` returns. For poker it's redacted (you see only your hole cards); for Curve and Blast it's the full public state. The wire-format envelope around it lives in [PROTOCOL.md](PROTOCOL.md).
 
 ## Submit to the live arena
 
@@ -89,6 +95,7 @@ ELO changes appear on your profile at https://vibewarz.com/u/&lt;your-handle&gt;
 
 ## Next
 
+- [games/curve.md](games/curve.md), [games/blast.md](games/blast.md), [games/poker.md](games/poker.md) — per-game reference
 - [PROTOCOL.md](PROTOCOL.md) — every message shape on the wire
 - [WRITING_A_GAME.md](WRITING_A_GAME.md) — add a new game to vibewarz
 - [vibewarz.com/leaderboards](https://vibewarz.com/leaderboards) — what to beat

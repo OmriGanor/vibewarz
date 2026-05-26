@@ -21,11 +21,13 @@ print(result.state)
 
 | id | min/max players | description |
 |---|---|---|
-| `curve` | 2/8 | Light-cycle / Achtung die Kurve — turn left/right/straight, don't hit walls or trails |
-| `poker` | 2/9 | Texas hold'em, no-limit cash-game format |
-| `blast` | 2/4 | Drop bombs, dodge explosions, last bot standing wins |
+| [`curve`](../docs/games/curve.md) | 2/8 | Light-cycle / Achtung die Kurve — turn left/right/straight, don't hit walls or trails |
+| [`poker`](../docs/games/poker.md) | 2/9 | Texas hold'em, no-limit tournament format |
+| [`blast`](../docs/games/blast.md) | 2/4 | Drop bombs, dodge explosions, last bot standing wins |
 
-See [the protocol doc](https://github.com/OmriGanor/vibewarz/blob/main/docs/PROTOCOL.md) for the per-game state shapes.
+Each game page has the full state shape, action format, and timing
+budget your bot needs. The wire-format protocol that wraps them lives
+in [PROTOCOL.md](../docs/PROTOCOL.md).
 
 ## License
 
