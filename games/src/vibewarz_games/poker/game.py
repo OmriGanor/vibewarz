@@ -138,7 +138,12 @@ class Poker(Game):
         show_all = state.get("showdown_hands") is not None
         view_players = []
         for p in state["players"]:
-            visible = (p["seat"] == seat) or show_all or not p["in_hand"]
+            # Cards are visible only to their owner or at showdown. A player
+            # who folds this hand keeps `hole_cards` in the authoritative
+            # state (for audit / replay), but their cards must remain hidden
+            # from every other seat — in real poker, mucked cards are never
+            # shown.
+            visible = (p["seat"] == seat) or show_all
             view_players.append({
                 **p,
                 "hole_cards": p["hole_cards"] if (visible and p["hole_cards"]) else [],
