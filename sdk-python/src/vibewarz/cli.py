@@ -116,19 +116,25 @@ def replay(
         help="API key for authenticated fetch. Replays are currently public; this is forward-compat.",
     ),
     pretty: bool = typer.Option(
-        False, "--pretty", help="Pretty-print each JSON event (indented)."
+        None,
+        "--pretty/--compact",
+        help=(
+            "Pretty-print (indented) vs compact (one JSON object per line). "
+            "Defaults: --pretty for local file reads (open-and-skim), "
+            "--compact for remote fetches (jq-friendly)."
+        ),
     ),
 ) -> None:
-    """Print a replay's tick log to stdout (one JSON object per line).
+    """Print a replay's tick log to stdout.
 
     With --api-url (or VIBEWARZ_API_URL): fetches over HTTP from the live
-    API. Pipe to `jq` for filtering:
+    API. Default output is compact, one JSON object per line — pipe to jq:
 
       vibewarz replay m_abc1234 | jq 'select(.type=="game_end")'
 
     Without --api-url: walks ./data/replays for a JSONL file (the local
-    backend writes there during dev). Useful for inspecting `play-local`
-    matches without spinning up the server.
+    backend writes there during dev). Default output is indented for
+    direct reading; pass --compact if you're piping somewhere.
     """
     if api_url:
         envelope = asyncio.run(_fetch_remote_replay(match_id, api_url, api_key))
@@ -137,8 +143,11 @@ def replay(
             f"fetched {len(events)} events for {match_id} (game={envelope.get('game_id')})",
             err=True,
         )
+        # Remote default: compact (one-per-line) so the output pipes
+        # cleanly through jq without `slurp` mode.
+        indent = 2 if pretty is True else None
         for evt in events:
-            typer.echo(json.dumps(evt, indent=2 if pretty else None))
+            typer.echo(json.dumps(evt, indent=indent))
         return
 
     root = Path("./data/replays").resolve()
@@ -150,11 +159,14 @@ def replay(
             err=True,
         )
         raise typer.Exit(1)
+    # Local default: indented. Preserves the pre-remote-mode behavior of
+    # `vibewarz replay <id>` for users who just want to eyeball a file.
+    indent = None if pretty is False else 2
     for line in candidates[0].read_text().splitlines():
         if not line.strip():
             continue
         obj = json.loads(line)
-        typer.echo(json.dumps(obj, indent=2 if pretty else None))
+        typer.echo(json.dumps(obj, indent=indent))
 
 
 async def _fetch_remote_replay(match_id: str, api_url: str, api_key: str | None) -> dict:
