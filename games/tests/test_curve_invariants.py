@@ -49,7 +49,6 @@ from vibewarz_games.curve.game import (
     Curve,
 )
 
-
 # Slack for the "near a real obstacle" check. The engine's collision
 # happens when the motion *segment* crosses an obstacle segment, so the
 # obstacle is at most SPEED away from the start head. We add a small
@@ -223,10 +222,11 @@ def _assert_elimination_explainable(
     for other_seat, trail in enumerate(pre_state["trails"]):
         if not trail:
             continue
-        if other_seat == dying_seat:
-            relevant = trail[:-SELF_CLIP_IMMUNE_SEGMENTS]
-        else:
-            relevant = trail
+        relevant = (
+            trail[:-SELF_CLIP_IMMUNE_SEGMENTS]
+            if other_seat == dying_seat
+            else trail
+        )
         for i in range(len(relevant) - 1):
             d = _distance_between_segments(
                 motion_p0,
@@ -315,9 +315,9 @@ def test_prod_replay_m_17eb7f9d_tick450_does_not_kill_seat_0() -> None:
 
     new_seat_0 = next(p for p in result.state["players"] if p["seat"] == 0)
     assert new_seat_0["alive"], (
-        f"seat 0 was killed by a false-positive collision at tick 450 "
-        f"— this is the m_17eb7f9d0a3d46e3 bug. The AABB prefilter in "
-        f"`_segments_intersect` must have been reverted."
+        "seat 0 was killed by a false-positive collision at tick 450 "
+        "— this is the m_17eb7f9d0a3d46e3 bug. The AABB prefilter in "
+        "`_segments_intersect` must have been reverted."
     )
     assert 0 not in result.eliminated_this_tick
 
