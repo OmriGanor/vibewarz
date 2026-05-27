@@ -14,6 +14,7 @@ from vibewarz_games.curve.game import (
     SPEED,
     SPEED_BOOST_FACTOR,
     Curve,
+    _segments_intersect,
 )
 
 
@@ -274,6 +275,77 @@ def test_apply_deltas_reconstructs_authoritative_trails(curve: Curve) -> None:
             client_trails[i].extend(segs)
 
     assert client_trails == [list(t) for t in state["trails"]]
+
+
+# ─── _segments_intersect ────────────────────────────────────────────────────
+
+
+def test_segments_intersect_x_crossing() -> None:
+    """Canonical case: two segments forming an X must intersect."""
+    assert _segments_intersect((0.0, 0.0), (10.0, 10.0), (0.0, 10.0), (10.0, 0.0))
+
+
+def test_segments_intersect_parallel_non_touching() -> None:
+    """Parallel segments offset on the y-axis must not intersect."""
+    assert not _segments_intersect(
+        (0.0, 0.0), (10.0, 0.0), (0.0, 5.0), (10.0, 5.0)
+    )
+
+
+def test_segments_intersect_disjoint_separate_bboxes() -> None:
+    """Two segments whose AABBs are far apart must not intersect.
+    The AABB prefilter dispatches this in one branch."""
+    assert not _segments_intersect(
+        (0.0, 0.0), (1.0, 1.0), (100.0, 100.0), (101.0, 101.0)
+    )
+
+
+def test_segments_intersect_collinear_overlap_still_works() -> None:
+    """Load-bearing for the AABB prefilter: collinear segments whose
+    bounding boxes DO overlap must still return True via the ccw +
+    on_segment branch."""
+    # Same x-axis, ranges overlap on x ∈ [5, 10].
+    assert _segments_intersect((0.0, 0.0), (10.0, 0.0), (5.0, 0.0), (15.0, 0.0))
+
+
+def test_segments_intersect_collinear_touch_at_endpoint() -> None:
+    """Collinear segments sharing exactly one endpoint count as intersecting."""
+    assert _segments_intersect((0.0, 0.0), (10.0, 0.0), (10.0, 0.0), (20.0, 0.0))
+
+
+def test_segments_intersect_t_junction() -> None:
+    """One segment's endpoint lies on the interior of the other (T-shape)."""
+    assert _segments_intersect((0.0, 0.0), (10.0, 0.0), (5.0, 0.0), (5.0, 10.0))
+
+
+def test_segments_intersect_disjoint_collinear_returns_false_regression() -> None:
+    """Regression for replay m_17eb7f9d0a3d46e3, tick 450.
+
+    A human player surviving 450 ticks of curve died on the final tick
+    by a false-positive collision. The four points below are
+    geometrically collinear (player went STRAIGHT, then LEFT for 6
+    ticks, then STRAIGHT at the new heading — their later STRAIGHT run
+    is on the same infinite line as the trail segment they laid down
+    between ticks 445→446) and 23.5 units apart, so they can't
+    intersect. The pre-fix `_segments_intersect` reported:
+
+        d1=0.0, d2=1.42e-14, d3=7.10e-15, d4=0.0
+
+    The ((d1>0)!=(d2>0)) and ((d3>0)!=(d4>0)) "endpoints on opposite
+    sides" check fires (False!=True and True!=False), returning True
+    incorrectly. The AABB prefilter at the top of _segments_intersect
+    rejects this pair before the ccw test runs.
+    """
+    p1 = (150.25312742756537, 477.62214941001673)
+    p2 = (147.77195176457892, 473.51316324194516)
+    p3 = (163.15524087509502, 498.988877483989)
+    p4 = (159.18535981431666, 492.4144996150744)
+    assert not _segments_intersect(p1, p2, p3, p4)
+    # Argument order must not matter.
+    assert not _segments_intersect(p3, p4, p1, p2)
+    # Reversing the direction of either segment must not matter either.
+    assert not _segments_intersect(p2, p1, p3, p4)
+    assert not _segments_intersect(p1, p2, p4, p3)
 
 
 def test_powerup_spawns_at_interval(curve: Curve) -> None:

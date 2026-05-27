@@ -53,7 +53,32 @@ def _segments_intersect(
     """Standard 2D segment intersection including collinear-overlap.
 
     Returns True if segment (p1,p2) crosses or overlaps segment (p3,p4).
+
+    AABB rejection runs first: segments whose axis-aligned bounding boxes
+    don't overlap cannot possibly intersect, and rejecting them up front
+    sidesteps the classic floating-point trap where ccw cross-products
+    for *geometrically collinear but disjoint* segments evaluate to a
+    mix of exact zero and tiny non-zero noise (`1e-14`-range), which the
+    "endpoints on opposite sides" check below misreads as a real
+    crossing. Bug reference: replay m_17eb7f9d0a3d46e3, tick 450 — a
+    450-tick human curve match died on the final tick with the four
+    points (150.253, 477.622), (147.772, 473.513), (163.155, 498.989),
+    (159.185, 492.414): d1=0.0, d2=1.42e-14, d3=7.10e-15, d4=0.0,
+    bounding boxes 23.5 units apart. min/max preserve sign exactness in
+    floating-point, so the prefilter is correct without epsilon tuning;
+    cf. Shewchuk's robust-predicates literature on why ccw alone is
+    not robust under IEEE-754.
     """
+
+    # AABB rejection — cheap (~5 float compares), exact, and dispatches
+    # the disjoint-collinear false-positive case entirely.
+    if (
+        max(p1[0], p2[0]) < min(p3[0], p4[0])
+        or max(p3[0], p4[0]) < min(p1[0], p2[0])
+        or max(p1[1], p2[1]) < min(p3[1], p4[1])
+        or max(p3[1], p4[1]) < min(p1[1], p2[1])
+    ):
+        return False
 
     def ccw(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> float:
         return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
