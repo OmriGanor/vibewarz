@@ -483,8 +483,9 @@ def test_journal_view_drops_trails_keeps_delta_and_seed(curve: Curve) -> None:
 
 
 def test_journal_view_default_is_identity() -> None:
-    # Bounded games don't override journal_view; it must return state as-is so
-    # they keep journaling full per-tick state.
-    poker = GAMES["poker"]()
-    state = poker.initial_state(seed=1, num_players=2)
-    assert poker.journal_view(state) is state
+    # Blast's per-tick state is bounded (fixed board), so it doesn't override
+    # journal_view — the base default must return state as-is so it keeps
+    # journaling full per-tick state.
+    blast = GAMES["blast"]()
+    state = blast.initial_state(seed=1, num_players=2)
+    assert blast.journal_view(state) is state

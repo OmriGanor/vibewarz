@@ -504,3 +504,26 @@ def test_default_action_when_seat_misses_decision():
     folded = next(pl for pl in new["players"] if pl["seat"] == actor)
     assert not folded["in_hand"]
     assert folded["folded"]
+
+
+def test_journal_view_drops_history_keeps_seed_and_rest():
+    p = Poker()
+    state = p.initial_state(seed=7, num_players=4)
+    # Drive a few legal actions so `history` is non-empty (default_action is
+    # check-or-fold — enough to log entries without looping the tournament).
+    for _ in range(5):
+        if state["phase"] == "done":
+            break
+        actor = state["action_on"]
+        if actor is None:
+            state = p.step(state, {}).state
+            continue
+        state = p.step(state, {actor: p.default_action(state, actor)}).state
+    assert state.get("history"), "expected some betting history to accumulate"
+    jv = p.journal_view(state)
+    # The O(N²) field is gone from the per-tick journal view…
+    assert "history" not in jv
+    # …but the view stays omniscient/unredacted and otherwise intact.
+    assert jv["seed"] == state["seed"]
+    assert jv["players"] == state["players"]
+    assert {k for k in state if k != "history"} == set(jv)

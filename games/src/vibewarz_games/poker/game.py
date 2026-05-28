@@ -153,6 +153,20 @@ class Poker(Game):
         view["players"] = view_players
         return view
 
+    def journal_view(self, state: dict) -> dict:
+        """Per-tick replay-journal view: drop the cumulative `history` log.
+
+        `history` appends one entry per betting action and is never reset
+        across hands, so journaling the full state every tick makes a long
+        poker match O(N²) (in an 87-tick game it was already ~60% of the
+        bytes). Nothing reconstructs gameplay from per-tick `history` — the
+        viewer never reads it, the per-tick `actions`/`ts`/`tick` fields on
+        the `tick_result` envelope already capture who acted and when, and the
+        complete log survives in the `game_end` `final_state`. Stays
+        omniscient (keeps `seed`); see `_core/base.py:Game.journal_view`.
+        """
+        return {k: v for k, v in state.items() if k != "history"}
+
     def legal_actions(self, state: dict, seat: int) -> list[dict]:
         if state["action_on"] != seat:
             return []
