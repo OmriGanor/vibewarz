@@ -21,7 +21,7 @@ dependencies = [
   "rich>=13.7",
   "pydantic>=2.7",
   "httpx>=0.27",
-  "vibewarz-games>=0.2,<0.3",
+  "vibewarz-games>=0.2.5,<0.3",
 ]
 
 [project.optional-dependencies]

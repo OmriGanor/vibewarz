@@ -464,3 +464,27 @@ def test_effect_expires_after_duration(curve: Curve) -> None:
 def test_powerup_kinds_constant() -> None:
     assert set(POWERUP_KINDS) == {"speed", "slow", "god"}
     assert set(POWERUP_DURATION) == set(POWERUP_KINDS)
+
+
+def test_journal_view_drops_trails_keeps_delta_and_seed(curve: Curve) -> None:
+    state = curve.initial_state(seed=42, num_players=4)
+    res = curve.step(state, _all_straight())
+    jv = curve.journal_view(res.state)
+    # The whole point: the cumulative trails array is gone from the journal,
+    # but the per-tick delta (and everything else) stays so a viewer can
+    # reconstruct trails by appending deltas onto the game_start snapshot.
+    assert "trails" not in jv
+    assert "trail_delta" in jv
+    # Omniscient + unredacted: unlike delta_view_for, the journal keeps seed.
+    assert jv["seed"] == res.state["seed"]
+    assert jv["players"] == res.state["players"]
+    # Non-trails keys are untouched.
+    assert {k for k in res.state if k != "trails"} == set(jv)
+
+
+def test_journal_view_default_is_identity() -> None:
+    # Bounded games don't override journal_view; it must return state as-is so
+    # they keep journaling full per-tick state.
+    poker = GAMES["poker"]()
+    state = poker.initial_state(seed=1, num_players=2)
+    assert poker.journal_view(state) is state

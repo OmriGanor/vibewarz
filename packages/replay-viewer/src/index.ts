@@ -1,4 +1,4 @@
-export { CurveReplay, buildCurveFrames } from "./curve";
+export { CurveReplay, buildCurveTimeline, type CurveTimeline } from "./curve";
 export { PlaybackControls, usePlayback } from "./controls";
 export type { PlaybackState } from "./controls";
 export {

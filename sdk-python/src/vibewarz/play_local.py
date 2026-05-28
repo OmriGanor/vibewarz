@@ -196,8 +196,12 @@ def play(
                     TickResultEvt(
                         ts=_ts_ms(),
                         match_id=match_id,
+                        # journal_view drops cumulative fields a viewer can
+                        # rebuild from deltas (Curve's growing `trails`), so
+                        # the replay stays O(N) instead of O(N²). game_start
+                        # below keeps the full snapshot to anchor that rebuild.
                         tick=tick,
-                        state=state,
+                        state=game.journal_view(state),
                         actions={seat: act for seat, act in actions.items()},
                         eliminated=list(result.eliminated_this_tick),
                     )
