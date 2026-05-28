@@ -42,10 +42,13 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Typecheck
-        run: pnpm -r --if-present run typecheck
+      # Build game-ui first: the viewer typechecks against the package's
+      # emitted dist/index.d.ts (workspace link resolves to `types`), so
+      # the declarations must exist before `tsc --noEmit` runs.
       - name: Build game-ui
         run: pnpm -F @vibewarz/game-ui build
+      - name: Typecheck
+        run: pnpm -r --if-present run typecheck
       # Freshness check: rebuild the viewer SPA and verify the committed
       # sdk-python/src/vibewarz/viewer_dist/ matches. If a contributor edits
       # @vibewarz/game-ui but forgets to rebuild the bundle, the
