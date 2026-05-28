@@ -527,3 +527,42 @@ def test_journal_view_drops_history_keeps_seed_and_rest():
     assert jv["seed"] == state["seed"]
     assert jv["players"] == state["players"]
     assert {k for k in state if k != "history"} == set(jv)
+
+
+def test_delta_view_for_omits_history_keeps_history_delta():
+    """Wire view ships the constant-size `history_delta`, never the
+    cumulative `history` — and still redacts like `view_for`."""
+    p = Poker()
+    state = p.initial_state(seed=42, num_players=4)
+    for _ in range(8):
+        if state["phase"] == "done":
+            break
+        actor = state["action_on"]
+        action = {} if actor is None else {actor: p.default_action(state, actor)}
+        state = p.step(state, action).state
+    assert len(state["history"]) > 1  # cumulative growth happened
+    for seat in range(4):
+        view = p.delta_view_for(state, seat)
+        assert "seed" not in view
+        assert "history" not in view
+        assert view["history_delta"] == state["history_delta"]
+        assert view["deck"] == []  # view_for redaction preserved
+
+
+def test_apply_deltas_reconstructs_authoritative_history():
+    """SDK accumulator semantics: client starts from the game_start snapshot
+    and concatenates each tick's `history_delta` onto its `history`. After N
+    steps the reconstruction must equal the authoritative engine history."""
+    p = Poker()
+    state = p.initial_state(seed=42, num_players=4)
+    client_history = list(p.snapshot_view_for(state, seat=0)["history"])
+    for _ in range(40):
+        actor = state["action_on"]
+        action = {} if actor is None else {actor: p.default_action(state, actor)}
+        result = p.step(state, action)
+        state = result.state
+        client_history.extend(p.delta_view_for(state, seat=0)["history_delta"])
+        if result.done:
+            break
+    assert client_history == state["history"]
+    assert len(client_history) > 1  # exercised real growth across hands
