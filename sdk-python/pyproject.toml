@@ -34,22 +34,19 @@ vibewarz = "vibewarz.cli:app"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# The bundled React replay viewer (../viewer/ build output, committed under
+# src/vibewarz/viewer_dist/) ships in the wheel automatically: hatchling
+# includes every non-VCS-ignored file inside the package dir, not just *.py.
+# So `vibewarz replay --watch` finds the assets via importlib.resources after
+# a plain `pip install vibewarz`, no Node toolchain required. CI freshness
+# check guards against the committed bundle drifting from the
+# @vibewarz/replay-viewer source — rebuild with `pnpm -F viewer build`.
 [tool.hatch.build.targets.wheel]
 packages = ["src/vibewarz"]
 
-# Bundled React replay viewer (built from ../viewer/). hatchling includes .py
-# files inside the package by default; force-include explicitly pulls the
-# committed Vite output into the wheel so `vibewarz replay --watch` can serve
-# it via importlib.resources without requiring a Node toolchain at install
-# time. CI freshness check guards against the committed bundle drifting from
-# the @vibewarz/replay-viewer source — rebuild with `pnpm -F viewer build` at
-# the workspace root.
-[tool.hatch.build.targets.wheel.force-include]
-"src/vibewarz/viewer_dist" = "vibewarz/viewer_dist"
-
-# Same files need to ship in the sdist too, otherwise a source install
-# (`pip install vibewarz --no-binary :all:`) would build a wheel from a tarball
-# that didn't contain the viewer.
+# Mirror the package into the sdist so a source install
+# (`pip install vibewarz --no-binary :all:`) builds a wheel from a tarball that
+# still contains the viewer.
 [tool.hatch.build.targets.sdist]
 include = [
   "src/vibewarz/**",
