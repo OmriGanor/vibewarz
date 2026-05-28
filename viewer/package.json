@@ -2,7 +2,7 @@
   "name": "viewer",
   "private": true,
   "version": "0.0.0",
-  "description": "Standalone Vite SPA that wraps @vibewarz/replay-viewer. The built bundle is committed under sdk-python/src/vibewarz/viewer_dist/ and served by `vibewarz replay --watch`.",
+  "description": "Standalone Vite SPA that wraps @vibewarz/game-ui. The built bundle is committed under sdk-python/src/vibewarz/viewer_dist/ and served by `vibewarz replay --watch`.",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vibewarz/replay-viewer": "workspace:*",
+    "@vibewarz/game-ui": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

@@ -2,7 +2,7 @@
 
 This directory holds changesets — small files describing the version bump and
 release notes for the npm packages in this repo (currently just
-`@vibewarz/replay-viewer`).
+`@vibewarz/game-ui`).
 
 ## When you need a changeset
 

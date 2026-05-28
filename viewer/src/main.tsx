@@ -1,9 +1,11 @@
 import {
+  BlastReplay,
   CurveReplay,
+  PokerReplay,
   detectGameId,
   type RawReplay,
-} from "@vibewarz/replay-viewer";
-import "@vibewarz/replay-viewer/styles.css";
+} from "@vibewarz/game-ui";
+import "@vibewarz/game-ui/styles.css";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -49,12 +51,14 @@ function App() {
       </p>
       {game === "curve" ? (
         <CurveReplay events={replay.events} />
+      ) : game === "blast" ? (
+        <BlastReplay events={replay.events} />
+      ) : game === "poker" ? (
+        <PokerReplay events={replay.events} />
       ) : (
         <div className="vw-app__error">
           Replay loaded ({replay.events.length} events), but no renderer is
-          registered for game "{game ?? "(unknown)"}" yet. Curve is the only
-          game supported in @vibewarz/replay-viewer 0.x; Poker/Blast follow
-          once their live-game boards are decoupled.
+          registered for game "{game ?? "(unknown)"}".
         </div>
       )}
     </>

@@ -44,11 +44,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm -r --if-present run typecheck
-      - name: Build replay-viewer
-        run: pnpm -F @vibewarz/replay-viewer build
+      - name: Build game-ui
+        run: pnpm -F @vibewarz/game-ui build
       # Freshness check: rebuild the viewer SPA and verify the committed
       # sdk-python/src/vibewarz/viewer_dist/ matches. If a contributor edits
-      # @vibewarz/replay-viewer but forgets to rebuild the bundle, the
+      # @vibewarz/game-ui but forgets to rebuild the bundle, the
       # Python wheel ships stale code — catch that here, on day one.
       - name: Build viewer SPA
         run: pnpm -F viewer build

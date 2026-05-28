@@ -123,6 +123,101 @@
   margin: 0.5rem 0 0;
 }
 
+.vw-replay__player-stats {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  font-family: var(--vw-font-mono);
+  font-size: 0.75rem;
+  color: var(--vw-color-text-muted);
+}
+
+/* Blast board */
+
+.vw-blast__board {
+  border: 1px solid var(--vw-color-border);
+  border-radius: var(--vw-radius);
+  overflow: hidden;
+  background-color: var(--vw-color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.vw-blast__svg {
+  border-radius: 4px;
+}
+
+.vw-blast__hud {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .vw-blast__hud {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.vw-blast__hud-card {
+  border: 1px solid var(--vw-color-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-family: var(--vw-font-mono);
+  font-size: 0.75rem;
+}
+
+.vw-blast__hud-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vw-blast__hud-you {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--vw-color-text-muted);
+}
+
+.vw-blast__hud-stats {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  color: var(--vw-color-text-muted);
+}
+
+.vw-blast__hud-dead {
+  margin-left: auto;
+  color: var(--vw-color-danger);
+}
+
+/* Poker sidebar info card */
+
+.vw-poker__info {
+  border: 1px solid var(--vw-color-border);
+  border-radius: var(--vw-radius);
+  padding: 0.75rem;
+  background-color: var(--vw-color-surface);
+  font-family: var(--vw-font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vw-poker__info-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.vw-poker__info-row > span:first-child {
+  color: var(--vw-color-text-muted);
+}
+
 /* Playback controls */
 
 .vw-replay__controls {

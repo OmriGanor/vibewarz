@@ -40,7 +40,7 @@ build-backend = "hatchling.build"
 # So `vibewarz replay --watch` finds the assets via importlib.resources after
 # a plain `pip install vibewarz`, no Node toolchain required. CI freshness
 # check guards against the committed bundle drifting from the
-# @vibewarz/replay-viewer source — rebuild with `pnpm -F viewer build`.
+# @vibewarz/game-ui source — rebuild with `pnpm -F viewer build`.
 [tool.hatch.build.targets.wheel]
 packages = ["src/vibewarz"]
 
