@@ -1,7 +1,7 @@
 [project]
 name = "vibewarz-games"
-version = "0.2.6"
-description = "vibewarz game engines — pure Python implementations of Curve, Poker, Blast"
+version = "0.2.7"
+description = "vibewarz game engines — pure Python implementations of Curve, Poker, Blast, and Vibelords"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
