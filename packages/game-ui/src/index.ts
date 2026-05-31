@@ -1,4 +1,16 @@
 export { CurveReplay, buildCurveTimeline, type CurveTimeline } from "./curve";
+export { VibelordsReplay, buildVibelordsFrames } from "./vibelords";
+export { VibelordsBoard, VibelordsAssetSheet } from "./vibelords/board";
+export { UNIT_NAMES, unitDisplayName, AGE_NAMES } from "./vibelords/types";
+export type {
+  VibelordsState,
+  VibelordsPlayer,
+  VibelordsUnit,
+  VibelordsUnitType,
+  VibelordsBase,
+  VibelordsFx,
+  VibelordsAction,
+} from "./vibelords/types";
 export { BlastReplay, buildBlastFrames } from "./blast";
 export { BlastBoard } from "./blast/board";
 export type {

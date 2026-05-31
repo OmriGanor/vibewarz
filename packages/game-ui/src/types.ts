@@ -53,5 +53,6 @@ export function detectGameId(replay: RawReplay): string | null {
   if ("community_cards" in s) return "poker";
   if ("board" in s && "bombs" in s) return "blast";
   if ("trails" in s || "trail_delta" in s) return "curve";
+  if ("bases" in s && "units" in s && "lane" in s) return "vibelords";
   return null;
 }

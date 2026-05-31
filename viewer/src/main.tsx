@@ -1,4 +1,6 @@
 import {
+  VibelordsAssetSheet,
+  VibelordsReplay,
   BlastReplay,
   CurveReplay,
   PokerReplay,
@@ -51,6 +53,8 @@ function App() {
       </p>
       {game === "curve" ? (
         <CurveReplay events={replay.events} />
+      ) : game === "vibelords" ? (
+        <VibelordsReplay events={replay.events} />
       ) : game === "blast" ? (
         <BlastReplay events={replay.events} />
       ) : game === "poker" ? (
@@ -67,8 +71,9 @@ function App() {
 
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root");
+const showAssets =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("assets");
 createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  <StrictMode>{showAssets ? <VibelordsAssetSheet /> : <App />}</StrictMode>,
 );
