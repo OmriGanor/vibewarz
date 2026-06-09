@@ -358,29 +358,6 @@
   color: var(--vw-color-text-muted);
 }
 
-/* Poker sidebar info card */
-
-.vw-poker__info {
-  border: 1px solid var(--vw-color-border);
-  border-radius: var(--vw-radius);
-  padding: 0.75rem;
-  background-color: var(--vw-color-surface);
-  font-family: var(--vw-font-mono);
-  font-size: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.vw-poker__info-row {
-  display: flex;
-  justify-content: space-between;
-}
-
-.vw-poker__info-row > span:first-child {
-  color: var(--vw-color-text-muted);
-}
-
 /* Playback controls */
 
 .vw-replay__controls {
