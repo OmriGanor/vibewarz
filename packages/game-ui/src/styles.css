@@ -248,6 +248,18 @@
   color: var(--vw-color-danger);
 }
 
+/* Curve board — a square (1:1) canvas. Unlike the 16:9 boards (width-bound in
+   every frame), a square board is height-bound in the 16:9 frame, so it fits by
+   height and caps width, meet-fitting inside the flex-centered .vw-frame__stage. */
+.vw-curve__canvas {
+  display: block;
+  /* The canvas is a replaced element with a square backing buffer, so capping
+     both axes meet-fits it (preserving 1:1) into the flex-centered stage —
+     fills the 1:1 frame, centers height-bound in 16:9 / width-bound in 9:16. */
+  max-width: 100%;
+  max-height: 100%;
+}
+
 /* Vibelords board */
 
 .vw-vibelords__board {
