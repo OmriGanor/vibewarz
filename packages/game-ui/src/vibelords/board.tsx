@@ -15,12 +15,26 @@ import {
 } from "./types";
 
 // ── battlefield geometry (SVG units) ─────────────────────────────────────────
+// The board renders natively at 16:9 (920×518) so a default replay is already a
+// social-ready clip. Everything (keeps, units, HP bars) anchors to GROUND_Y and
+// the ground band is the fixed slice below it, so the extra height over the old
+// 360-tall board is sky headroom — which also hosts the HUD overlay.
 const W = 920;
-const H = 360;
+const H = 518; // 920:518 ≈ 16:9
+const GROUND_BAND = 98; // ground slice below the horizon (unchanged)
 const FIELD_L = 80; // x where lane position 0 maps (just outside the left keep)
 const FIELD_R = W - 80; // x where lane position `length` maps
-const GROUND_Y = 262; // top of the ground band; unit feet rest here
+const GROUND_Y = H - GROUND_BAND; // top of the ground band; unit feet rest here
 const KEEP_HALF = 40;
+
+// Fixed star field [xFrac, yFrac (of sky), radius] scattered across the upper
+// sky so the 16:9 headroom has some atmosphere. Avoids the moon's quadrant.
+const SKY_STARS: ReadonlyArray<readonly [number, number, number]> = [
+  [0.08, 0.18, 1.1], [0.15, 0.42, 0.8], [0.22, 0.12, 0.9], [0.31, 0.3, 1.2],
+  [0.39, 0.16, 0.7], [0.46, 0.4, 1.0], [0.53, 0.22, 0.85], [0.6, 0.35, 0.7],
+  [0.12, 0.6, 0.8], [0.27, 0.52, 0.7], [0.35, 0.66, 0.9], [0.5, 0.58, 0.8],
+  [0.66, 0.5, 0.75], [0.7, 0.18, 0.9], [0.9, 0.46, 0.8], [0.95, 0.2, 0.7],
+];
 
 // Smooth-march duration — just under the 100ms tick so units glide between
 // frames and arrive before the next tick resolves (same trick as Blast).
@@ -181,6 +195,22 @@ function Backdrop({ topAge }: { topAge: number }) {
         </linearGradient>
       </defs>
       <rect x={0} y={0} width={W} height={GROUND_Y} fill="url(#aw-sky)" />
+      {/* atmosphere — moon + stars fill the sky headroom so the 16:9 framing
+          reads as intentional rather than empty. Fixed positions so nothing
+          jitters between ticks. */}
+      {SKY_STARS.map(([fx, fy, r], i) => (
+        <circle
+          key={`star-${i}`}
+          cx={fx * W}
+          cy={fy * GROUND_Y}
+          r={r}
+          fill="#cdd3f0"
+          opacity={0.55}
+        />
+      ))}
+      <circle cx={W * 0.8} cy={GROUND_Y * 0.26} r={34} fill="#1c1b2e" opacity={0.5} />
+      <circle cx={W * 0.8} cy={GROUND_Y * 0.26} r={22} fill="#e8e4f5" opacity={0.92} />
+      <circle cx={W * 0.8 - 7} cy={GROUND_Y * 0.26 - 4} r={18} fill="#cfd6ef" opacity={0.5} />
       {/* distant parallax hills */}
       <path
         d={`M0 ${GROUND_Y} Q ${W * 0.2} ${GROUND_Y - 60} ${W * 0.42} ${GROUND_Y - 18}
@@ -1414,7 +1444,7 @@ function KeepCell({ age }: { age: number }) {
   return (
     <figure style={{ ...cellBox, width: 200 }}>
       <svg
-        viewBox={`0 128 140 154`}
+        viewBox={`0 ${GROUND_Y - 134} 140 154`}
         width={180}
         height={198}
         style={{ display: "block", margin: "0 auto" }}
