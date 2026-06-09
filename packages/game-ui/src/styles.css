@@ -126,7 +126,7 @@
 }
 
 .vw-frame[data-band="side"] .vw-frame__legend {
-  left: 0.85rem;
+  left: 1.6rem;
   top: 50%;
   transform: translateY(-50%);
   flex-direction: column;
@@ -136,7 +136,7 @@
 }
 
 .vw-frame[data-band="block"] .vw-frame__legend {
-  top: 0.7rem;
+  top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   flex-direction: row;
