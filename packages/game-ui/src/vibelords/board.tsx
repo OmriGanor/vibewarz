@@ -26,6 +26,10 @@ const FIELD_L = 80; // x where lane position 0 maps (just outside the left keep)
 const FIELD_R = W - 80; // x where lane position `length` maps
 const GROUND_Y = H - GROUND_BAND; // top of the ground band; unit feet rest here
 const KEEP_HALF = 40;
+// Units and keeps render this much larger than their base art size, to fill the
+// taller 16:9 field and read better in shareable clips. Applied at the feet so
+// sprites/keeps grow upward and stay planted on the ground line.
+const ASSET_SCALE = 1.2;
 
 // Fixed star field [xFrac, yFrac (of sky), radius] scattered across the upper
 // sky so the 16:9 headroom has some atmosphere. Avoids the moon's quadrant.
@@ -154,6 +158,7 @@ export function VibelordsBoard({
               age={player?.age ?? 0}
               color={player?.color ?? "#888"}
               cx={b.seat === 0 ? FIELD_L - 36 : FIELD_R + 36}
+              scale={ASSET_SCALE}
             />
           );
         })}
@@ -248,15 +253,21 @@ function Keep({
   age,
   color,
   cx,
+  scale = 1,
 }: {
   base: VibelordsBase;
   age: number;
   color: string;
   cx: number;
+  // Visual size multiplier for the building (the live board enlarges keeps to
+  // fill the field; the asset-sheet gallery renders them at base scale = 1).
+  scale?: number;
 }) {
   const dead = base.hp <= 0;
   const hpFrac = Math.max(0, Math.min(1, base.hp / base.max_hp));
-  const hpBarY = GROUND_Y - 126; // clears the tallest fortress (castle turret / future spire)
+  // Floats above the keep; scales with the building so the bar keeps the same
+  // relationship at any size (126 is the original gameplay-scale offset).
+  const hpBarY = GROUND_Y - 126 * scale;
   return (
     <g opacity={dead ? 0.4 : 1}>
       {/* base HP bar floating above the keep */}
@@ -282,16 +293,22 @@ function Keep({
         </text>
       </g>
 
-      {/* shadow */}
-      <ellipse cx={cx} cy={GROUND_Y + 3} rx={KEEP_HALF + 8} ry={6} fill="#00000066" />
+      {/* building + shadow, enlarged about the ground anchor so the keep grows
+          upward and stays planted (the HP bar above stays at UI scale). */}
+      <g
+        transform={`translate(${cx} ${GROUND_Y}) scale(${scale}) translate(${-cx} ${-GROUND_Y})`}
+      >
+        {/* shadow */}
+        <ellipse cx={cx} cy={GROUND_Y + 3} rx={KEEP_HALF + 8} ry={6} fill="#00000066" />
 
-      {/* each age has its own architecture — a different silhouette, not just a
-          recoloured wall: a primitive palisade, a stone castle, a brick
-          factory-fort, and a glowing energy citadel. */}
-      {age <= 0 && <StoneFort cx={cx} color={color} />}
-      {age === 1 && <CastleKeep cx={cx} color={color} />}
-      {age === 2 && <Factory cx={cx} color={color} />}
-      {age >= 3 && <FutureCitadel cx={cx} color={color} />}
+        {/* each age has its own architecture — a different silhouette, not just a
+            recoloured wall: a primitive palisade, a stone castle, a brick
+            factory-fort, and a glowing energy citadel. */}
+        {age <= 0 && <StoneFort cx={cx} color={color} />}
+        {age === 1 && <CastleKeep cx={cx} color={color} />}
+        {age === 2 && <Factory cx={cx} color={color} />}
+        {age >= 3 && <FutureCitadel cx={cx} color={color} />}
+      </g>
     </g>
   );
 }
@@ -540,7 +557,7 @@ function UnitSprite({
   const a = Math.max(0, Math.min(3, unit.age));
   const mode: AnimMode = unit.atk_cd > 0 ? "attack" : "move";
   // Later ages are physically larger — a Future mech towers over a caveman.
-  const s = SIZE_BY_AGE[a];
+  const s = SIZE_BY_AGE[a] * ASSET_SCALE;
   // light vertical stagger so massed armies read with depth
   const lane = hashId(unit.id) % 3;
   const y = GROUND_Y + 2 + lane * 9;
@@ -1015,7 +1032,7 @@ function Fx({
     const x1 = px(fx.x1);
     const age = fx.age ?? 1;
     const dir = x1 >= x0 ? 1 : -1;
-    const y = fireY ?? GROUND_Y - (MUZZLE_BODY_Y[age] ?? 16) * (SIZE_BY_AGE[age] ?? 1);
+    const y = fireY ?? GROUND_Y - (MUZZLE_BODY_Y[age] ?? 16) * (SIZE_BY_AGE[age] ?? 1) * ASSET_SCALE;
     if (age <= 0) {
       // Slinger — a high lob + a tumbling stone landing at the target
       const midX = (x0 + x1) / 2;
