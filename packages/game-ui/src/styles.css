@@ -250,61 +250,11 @@
   color: var(--vw-color-text-muted);
 }
 
-/* Blast board */
-
-.vw-blast__board {
-  border: 1px solid var(--vw-color-border);
-  border-radius: var(--vw-radius);
-  overflow: hidden;
-  background-color: var(--vw-color-bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-  gap: 1rem;
-}
-
+/* Blast board — square (1:1) SVG; meet-fits the frame like the Curve canvas. */
 .vw-blast__svg {
-  border-radius: 4px;
-}
-
-.vw-blast__hud {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  width: 100%;
-}
-
-@media (min-width: 1024px) {
-  .vw-blast__hud {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.vw-blast__hud-card {
-  border: 1px solid var(--vw-color-border);
-  border-radius: 6px;
-  padding: 0.5rem;
-  font-family: var(--vw-font-mono);
-  font-size: 0.75rem;
-}
-
-.vw-blast__hud-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.vw-blast__hud-stats {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-  color: var(--vw-color-text-muted);
-}
-
-.vw-blast__hud-dead {
-  margin-left: auto;
-  color: var(--vw-color-danger);
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Curve board — a square (1:1) canvas. Unlike the 16:9 boards (width-bound in
