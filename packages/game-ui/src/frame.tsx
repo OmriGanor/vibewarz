@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 
 // The three social-media aspect ratios replays support. Each game renders its
 // board natively at one of these (its `nativeRatio`), so the default replay is
@@ -62,6 +62,25 @@ export function ReplayFrame({
       : RATIO_VALUE[ratio] > RATIO_VALUE[nativeRatio]
         ? "side"
         : "block";
+
+  // Place the legend in the MIDDLE of the letterbox band (between the board edge
+  // and the frame edge), not pinned to the edge. The board is meet-fit centered,
+  // so each band spans a `bandFrac` of the frame along the band's axis (width for
+  // side bands, height for block bands); expose its center + size as CSS vars so
+  // the stylesheet positions the legend generally, for any game's native ratio.
+  let legendStyle: CSSProperties | undefined;
+  if (band) {
+    const boardFrac =
+      band === "side"
+        ? RATIO_VALUE[nativeRatio] / RATIO_VALUE[ratio] // board width / frame width
+        : RATIO_VALUE[ratio] / RATIO_VALUE[nativeRatio]; // board height / frame height
+    const bandFrac = (1 - boardFrac) / 2;
+    legendStyle = {
+      "--vw-band-center": `${((bandFrac / 2) * 100).toFixed(3)}%`,
+      "--vw-band-size": `${(bandFrac * 100).toFixed(3)}%`,
+    } as CSSProperties;
+  }
+
   return (
     <div
       className={`vw-frame ${RATIO_CLASS[ratio]}`}
@@ -69,7 +88,11 @@ export function ReplayFrame({
       data-band={band}
     >
       <div className="vw-frame__stage">{children}</div>
-      {band && legend && <div className="vw-frame__legend">{legend}</div>}
+      {band && legend && (
+        <div className="vw-frame__legend" style={legendStyle}>
+          {legend}
+        </div>
+      )}
       <div className="vw-frame__brand">
         {brand}
         <span className="vw-replay__wordmark">vibewarz</span>

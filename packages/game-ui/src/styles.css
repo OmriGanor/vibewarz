@@ -125,20 +125,23 @@
   color: var(--vw-color-text);
 }
 
+/* Centered in the band (midway between the board edge and the frame edge) via
+   the --vw-band-center/-size vars ReplayFrame sets; falls back to an inset. */
 .vw-frame[data-band="side"] .vw-frame__legend {
-  left: 1.6rem;
+  left: var(--vw-band-center, 1.6rem);
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
   gap: 0.55rem;
-  max-width: 22%;
+  max-width: calc(var(--vw-band-size, 30%) - 1rem);
 }
 
 .vw-frame[data-band="block"] .vw-frame__legend {
-  top: 1.5rem;
+  top: var(--vw-band-center, 1.5rem);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
