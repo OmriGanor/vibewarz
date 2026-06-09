@@ -29,7 +29,12 @@ const KEEP_HALF = 40;
 // Units and keeps render this much larger than their base art size, to fill the
 // taller 16:9 field and read better in shareable clips. Applied at the feet so
 // sprites/keeps grow upward and stay planted on the ground line.
-const ASSET_SCALE = 1.2;
+const ASSET_SCALE = 1.8;
+// Highest drawn point of each age's keep (raw units above the ground line):
+// stone palisade, castle pennant, factory smokestack, future emitter orb. Used
+// to float each base's HP bar just above its own silhouette rather than at a
+// single height tuned for the tallest keep.
+const KEEP_TOP_BY_AGE = [52, 122, 86, 121];
 
 // Fixed star field [xFrac, yFrac (of sky), radius] scattered across the upper
 // sky so the 16:9 headroom has some atmosphere. Avoids the moon's quadrant.
@@ -265,9 +270,10 @@ function Keep({
 }) {
   const dead = base.hp <= 0;
   const hpFrac = Math.max(0, Math.min(1, base.hp / base.max_hp));
-  // Floats above the keep; scales with the building so the bar keeps the same
-  // relationship at any size (126 is the original gameplay-scale offset).
-  const hpBarY = GROUND_Y - 126 * scale;
+  // Float the bar just above this keep's own (scaled) silhouette + a small gap,
+  // so it hugs the building at any age and any ASSET_SCALE.
+  const keepTop = KEEP_TOP_BY_AGE[Math.max(0, Math.min(3, age))];
+  const hpBarY = GROUND_Y - keepTop * scale - 15;
   return (
     <g opacity={dead ? 0.4 : 1}>
       {/* base HP bar floating above the keep */}
@@ -1461,9 +1467,9 @@ function KeepCell({ age }: { age: number }) {
   return (
     <figure style={{ ...cellBox, width: 200 }}>
       <svg
-        viewBox={`0 ${GROUND_Y - 134} 140 154`}
+        viewBox={`0 ${GROUND_Y - 148} 140 168`}
         width={180}
-        height={198}
+        height={216}
         style={{ display: "block", margin: "0 auto" }}
       >
         <line x1={0} y1={GROUND_Y} x2={140} y2={GROUND_Y} stroke="#2c2a22" strokeWidth={1.5} />
