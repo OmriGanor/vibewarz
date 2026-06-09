@@ -190,15 +190,49 @@ export function CurveReplay({
       <span className="vw-frame__result">🏆 {seatLabel(events, winnerSeat)}</span>
     ) : undefined;
 
+  // In the native 1:1 frame names ride the heads; in the re-framed ratios that
+  // would crowd the board, so identity moves to a roster legend in the dead
+  // space instead (ReplayFrame places it; greys out players as they die).
+  const onHead = ratio === CURVE_NATIVE_RATIO;
+  const legend = onHead ? undefined : (
+    <>
+      {current.state.players.map((p) => {
+        const isMe = mySeat !== null && p.seat === mySeat;
+        return (
+          <span
+            key={p.seat}
+            className={
+              "vw-frame__legend-item" +
+              (p.alive ? "" : " vw-frame__legend-item--dead") +
+              (isMe ? " vw-frame__legend-item--me" : "")
+            }
+          >
+            <span
+              className="vw-frame__legend-chip"
+              style={{ backgroundColor: p.color }}
+            />
+            {names[p.seat] ?? `seat ${p.seat}`}
+          </span>
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="vw-replay">
-      <ReplayFrame ratio={ratio} nativeRatio={CURVE_NATIVE_RATIO} brand={brand}>
+      <ReplayFrame
+        ratio={ratio}
+        nativeRatio={CURVE_NATIVE_RATIO}
+        brand={brand}
+        legend={legend}
+      >
         <CurveBoard
           state={current.state}
           trails={trails}
           trailLens={current.trailLens}
           names={names}
           mySeat={mySeat}
+          showHeadLabels={onHead}
         />
       </ReplayFrame>
       <PlaybackControls
@@ -218,6 +252,7 @@ function CurveBoard({
   trailLens,
   names,
   mySeat,
+  showHeadLabels,
 }: {
   state: CurveStateLite;
   trails: Point[][];
@@ -225,6 +260,9 @@ function CurveBoard({
   // Per-seat display names, drawn riding each living player's curve head.
   names: string[];
   mySeat: number | null;
+  // Whether to draw names on the heads (native 1:1 only — off-native ratios show
+  // a roster legend in the letterbox dead space instead).
+  showHeadLabels: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const size = 720; // logical drawing space (all px constants below are in it)
@@ -318,34 +356,37 @@ function CurveBoard({
 
     // Name labels ride each living player's head, pulsing VERY subtly so they
     // read without competing with the curves. A dead player has no head here,
-    // so its label is simply absent — which is how alive/dead now reads.
-    const pulse = 0.34 + 0.12 * Math.sin(state.tick * 0.18); // ≈ 0.22–0.46
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.font = "600 11px ui-monospace, Menlo, Consolas, monospace";
-    ctx.lineJoin = "round";
-    const pad = 4;
-    for (const p of state.players) {
-      if (!p.alive) continue;
-      const name = names[p.seat];
-      if (!name) continue;
-      // Clamp the (centered) label inside the canvas so heads at the walls
-      // don't get their name clipped by the edge.
-      const halfW = ctx.measureText(name).width / 2;
-      const x = clamp(p.x * scale, halfW + pad, size - halfW - pad);
-      const y = clamp(p.y * scale - 13, 14, size - pad); // just above the head
-      const isMe = mySeat !== null && p.seat === mySeat;
-      ctx.globalAlpha = isMe ? Math.min(1, pulse + 0.18) : pulse;
-      // Faint dark outline for legibility over bright trails.
-      ctx.strokeStyle = "#0a0a0b";
-      ctx.lineWidth = 3;
-      ctx.strokeText(name, x, y);
-      ctx.fillStyle = p.color;
-      ctx.fillText(name, x, y);
+    // so its label is simply absent — which is how alive/dead now reads. Only
+    // in native 1:1; off-native ratios show the roster legend in the bands.
+    if (showHeadLabels) {
+      const pulse = 0.34 + 0.12 * Math.sin(state.tick * 0.18); // ≈ 0.22–0.46
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.font = "600 11px ui-monospace, Menlo, Consolas, monospace";
+      ctx.lineJoin = "round";
+      const pad = 4;
+      for (const p of state.players) {
+        if (!p.alive) continue;
+        const name = names[p.seat];
+        if (!name) continue;
+        // Clamp the (centered) label inside the canvas so heads at the walls
+        // don't get their name clipped by the edge.
+        const halfW = ctx.measureText(name).width / 2;
+        const x = clamp(p.x * scale, halfW + pad, size - halfW - pad);
+        const y = clamp(p.y * scale - 13, 14, size - pad); // just above the head
+        const isMe = mySeat !== null && p.seat === mySeat;
+        ctx.globalAlpha = isMe ? Math.min(1, pulse + 0.18) : pulse;
+        // Faint dark outline for legibility over bright trails.
+        ctx.strokeStyle = "#0a0a0b";
+        ctx.lineWidth = 3;
+        ctx.strokeText(name, x, y);
+        ctx.fillStyle = p.color;
+        ctx.fillText(name, x, y);
+      }
+      ctx.restore();
     }
-    ctx.restore();
-  }, [state, trails, trailLens, names, mySeat]);
+  }, [state, trails, trailLens, names, mySeat, showHeadLabels]);
 
   return <canvas className="vw-curve__canvas" ref={canvasRef} />;
 }

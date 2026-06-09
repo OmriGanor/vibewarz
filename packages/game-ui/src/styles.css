@@ -113,6 +113,62 @@
   color: var(--vw-color-text);
 }
 
+/* Roster legend, shown in the letterbox dead space when a board is re-framed
+   off its native ratio. Side bands (frame wider than native) → LEFT, vertical;
+   top/bottom bands (frame taller) → TOP, horizontal. See ReplayFrame. */
+.vw-frame__legend {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+  font-family: var(--vw-font-mono);
+  font-size: 0.8rem;
+  color: var(--vw-color-text);
+}
+
+.vw-frame[data-band="side"] .vw-frame__legend {
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  max-width: 22%;
+}
+
+.vw-frame[data-band="block"] .vw-frame__legend {
+  top: 0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.9rem;
+  max-width: 92%;
+}
+
+.vw-frame__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.vw-frame__legend-item--dead {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.vw-frame__legend-item--me {
+  font-weight: 700;
+}
+
+.vw-frame__legend-chip {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 .vw-replay__empty {
   border: 1px solid var(--vw-color-border);
   border-radius: var(--vw-radius);
