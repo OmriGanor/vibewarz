@@ -98,12 +98,19 @@
 
 .vw-frame__brand {
   position: absolute;
-  right: 0.6rem;
-  bottom: 0.5rem;
+  left: 0.8rem;
+  bottom: 0.85rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   pointer-events: none;
+}
+
+/* In the tall 9:16 frame the board sits centered with a deep dead band below,
+   so pull the mark up off the very bottom edge (out of the social caption zone)
+   to keep it noticeable. */
+.vw-frame--9x16 .vw-frame__brand {
+  bottom: 1.85rem;
 }
 
 .vw-frame__result {
@@ -436,10 +443,27 @@
 }
 
 .vw-replay__wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: var(--vw-font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--vw-color-text-muted);
   user-select: none;
+}
+
+/* The vibewarz mark — a green rounded bar (the brand "I"), rendered as a
+   pseudo-element so it prefixes the wordmark wherever it appears (board corner
+   + controls bar). Pure CSS shape (no asset); themeable via --vw-color-accent. */
+.vw-replay__wordmark::before {
+  content: "";
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.85rem;
+  border-radius: 2px;
+  background: var(--vw-color-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--vw-color-accent) 55%, transparent);
+  flex-shrink: 0;
 }

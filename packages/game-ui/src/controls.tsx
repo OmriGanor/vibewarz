@@ -103,6 +103,7 @@ export function PlaybackControls({
   const { frame, setFrame, playing, setPlaying, speed, setSpeed } = playback;
   return (
     <div className="vw-replay__controls">
+      <span className="vw-replay__wordmark">vibewarz</span>
       <button
         type="button"
         onClick={() => setPlaying((p) => !p)}
@@ -144,7 +145,6 @@ export function PlaybackControls({
         ))}
       </select>
       {extra}
-      <span className="vw-replay__wordmark">vibewarz</span>
     </div>
   );
 }

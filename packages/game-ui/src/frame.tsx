@@ -94,8 +94,8 @@ export function ReplayFrame({
         </div>
       )}
       <div className="vw-frame__brand">
-        {brand}
         <span className="vw-replay__wordmark">vibewarz</span>
+        {brand}
       </div>
     </div>
   );
