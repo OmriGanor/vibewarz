@@ -64,6 +64,7 @@ export function BlastBoard({
   mySeat,
   names = [],
   showNames = false,
+  frame = false,
 }: {
   state: BlastState | null;
   mySeat: number | null;
@@ -71,6 +72,10 @@ export function BlastBoard({
   // off-native ratios show a roster legend in the letterbox bands instead).
   names?: string[];
   showNames?: boolean;
+  // Replay-frame mode: pad the board to a true square (native 1:1) with a large
+  // intrinsic size so the shared ReplayFrame can meet-fit it. The live play page
+  // leaves this false and renders the board at its natural rectangular size.
+  frame?: boolean;
 }) {
   // Track each seat's facing direction so the character's eyes can look
   // where they last moved. Recomputed from position deltas — the engine
@@ -98,22 +103,26 @@ export function BlastBoard({
   const { dims, board } = state;
   const width = dims.w * TILE;
   const height = dims.h * TILE;
-  // Pad to a true square so the board's native ratio is exactly 1:1: the grid is
-  // centered with a matte top/bottom (same bg → invisible seam), which lets the
-  // shared ReplayFrame meet-fit + legend band math stay exact. Large intrinsic
-  // size (vector) so CSS max-width/height:100% downscale-fills any frame crisply.
+  // Replay-frame mode pads the board to a true square so its native ratio is
+  // exactly 1:1: the grid is centered with a matte top/bottom (same bg →
+  // invisible seam), which lets the shared ReplayFrame meet-fit + legend band
+  // math stay exact, and a large intrinsic size (vector) so CSS max-width/height
+  // downscale-fills any frame crisply. The live play page renders the board at
+  // its natural rectangular size (no padding) so it sits inline at a sane size.
   const side = Math.max(width, height);
-  const padX = (side - width) / 2;
-  const padY = (side - height) / 2;
+  const vbW = frame ? side : width;
+  const vbH = frame ? side : height;
+  const padX = frame ? (side - width) / 2 : 0;
+  const padY = frame ? (side - height) / 2 : 0;
 
   return (
     <>
       <style>{STYLE_SHEET}</style>
       <svg
-        width={side * 2}
-        height={side * 2}
-        viewBox={`0 0 ${side} ${side}`}
-        className="vw-blast__svg"
+        width={frame ? side * 2 : width}
+        height={frame ? side * 2 : height}
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        className={"vw-blast__svg" + (frame ? " vw-blast__svg--frame" : "")}
         style={{ background: "#0a0a0b" }}
       >
         <g transform={`translate(${padX} ${padY})`}>

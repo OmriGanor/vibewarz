@@ -114,6 +114,7 @@ export function BlastReplay({
           mySeat={mySeat}
           names={names}
           showNames={onNative}
+          frame
         />
       </ReplayFrame>
       <PlaybackControls

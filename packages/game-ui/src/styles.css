@@ -250,11 +250,23 @@
   color: var(--vw-color-text-muted);
 }
 
-/* Blast board — square (1:1) SVG; meet-fits the frame like the Curve canvas. */
+/* Blast board. Base: the live play page renders the board at its natural
+   rectangular size (intrinsic w/h on the SVG), capped to the container width so
+   it stays inline and responsive — never balloons past the fold. Centered in
+   its column (margin auto) since it's narrower than the flexible play-page slot;
+   harmless in the replay's flex-centered stage. */
 .vw-blast__svg {
   display: block;
   max-width: 100%;
+  margin-inline: auto;
+  border-radius: 4px;
+}
+
+/* Replay-frame mode: a square (1:1) SVG that meet-fits the fixed-ratio stage
+   like the Curve canvas (square intrinsic buffer + cap both axes). */
+.vw-blast__svg--frame {
   max-height: 100%;
+  border-radius: 0;
 }
 
 /* Curve board — a square (1:1) canvas. Unlike the 16:9 boards (width-bound in
