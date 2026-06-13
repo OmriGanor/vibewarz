@@ -3,4 +3,9 @@
 # so it collapses in PR diffs and doesn't skew language stats. Kept at repo
 # root (not inside viewer_dist/) because Vite's emptyOutDir wipes that dir on
 # every rebuild.
-sdk-python/src/vibewarz/viewer_dist/** linguist-generated=true
+#
+# Pin LF: the bundle is built on CI (Linux → LF) and the `js` job asserts the
+# checked-in copy matches a fresh build. Without this, a Windows checkout
+# (core.autocrlf=true) commits CRLF and the freshness check fails on line
+# endings alone.
+sdk-python/src/vibewarz/viewer_dist/** linguist-generated=true text eol=lf
