@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChinesePokerBoard } from "@vibewarz/game-ui";
-import type { ChinesePokerState, ChinesePokerAction } from "@vibewarz/game-ui/dist/types";
+import { ChinesePokerBoard, type ChinesePokerState, type ChinesePokerAction } from "@vibewarz/game-ui";
 
 export function LiveApp() {
   const [state, setState] = useState<ChinesePokerState | null>(null);
