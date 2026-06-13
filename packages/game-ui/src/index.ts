@@ -24,7 +24,7 @@ export type {
   BlastAction,
 } from "./blast/types";
 export { PokerReplay, buildPokerFrames } from "./poker";
-export { PokerBoard, type SeatInfo } from "./poker/board";
+export { PokerBoard, type PokerTurnTimerOptions, type SeatInfo } from "./poker/board";
 export { ChinesePokerReplay, buildChinesePokerFrames } from "./chinese_poker";
 export { ChinesePokerBoard } from "./chinese_poker/board";
 export type {
