@@ -10,8 +10,12 @@ in `state["action_on"]`. After applying the action the engine chains
 forward through betting-round / phase / hand / tournament transitions as
 far as it can without needing another decision — for example, when the
 last two players go all-in pre-flop the engine deals the flop, turn,
-river, runs the showdown, awards pots, busts losers and starts the next
-hand (or ends the tournament) inside the same step.
+river, runs the showdown, awards pots and busts losers inside the same
+step. The hand's resolution is then emitted as its own `hand_complete`
+tick (with `action_on=None`) so clients and replays can show who won and
+how the pot split; the following hand is dealt on the next step. A hand
+that ends the tournament finalizes straight to `done` in the same step it
+resolves (it never parks at `hand_complete`).
 
 Hidden information: each player's hole cards belong to them. `view_for`
 redacts other seats' hole cards (and the remaining deck) for everyone
@@ -214,7 +218,28 @@ class Poker(Game):
         prev_hist_len = len(state.get("history") or [])
         actor = state["action_on"]
         if actor is None:
-            # No decision required — engine just advances by one tick. No
+            # action_on is None only at a parked hand resolution: the step that
+            # ended the hand awarded the pot and emitted the `hand_complete`
+            # settle state (so replays/clients can show who won and how the pot
+            # split) instead of dealing the next hand in the same tick. Deal the
+            # next hand now. A tournament-ending hand finalizes straight to
+            # `done` in the step it resolves, so it never parks here — the
+            # _tournament_done guard below is purely defensive.
+            if state["phase"] == "hand_complete":
+                if _tournament_done(state):
+                    new_state = _finalize_tournament(state)
+                    return StepResult(
+                        state=_bump_tick(_stamp_history_delta(new_state, prev_hist_len)),
+                        done=True,
+                        placement=list(new_state["placement"]),
+                        reason="elimination",
+                    )
+                new_state = _start_next_hand(state)
+                return StepResult(
+                    state=_bump_tick(_stamp_history_delta(new_state, prev_hist_len)),
+                    done=False,
+                )
+            # No decision required and nothing parked — advance by one tick. No
             # action means no history entry, so history_delta is empty.
             new_state = {**state, "tick": state["tick"] + 1, "history_delta": []}
             return StepResult(state=new_state, done=False)
@@ -231,7 +256,13 @@ class Poker(Game):
         # Track who just busted in this whole step (across chained hand ends).
         eliminated: list[int] = []
 
-        # Resolve as far as we can without needing another decision.
+        # Resolve as far as we can without needing another decision. When a hand
+        # ends we award the pot + settle busts, then either finalize the
+        # tournament (same tick, done=True) or PARK at `hand_complete`
+        # (action_on=None) so the resolution is emitted as its own observable
+        # tick — the next step deals the following hand. Without the park the
+        # award state would be overwritten by the next deal within this step and
+        # never reach the journal/clients, so no win/payout could be shown.
         while True:
             if _only_one_in_hand(new_state):
                 new_state = _award_uncontested(new_state)
@@ -246,8 +277,8 @@ class Poker(Game):
                         reason="elimination",
                         eliminated_this_tick=tuple(eliminated),
                     )
-                new_state = _start_next_hand(new_state)
-                break  # _start_next_hand set action_on correctly; await next step
+                new_state = {**new_state, "action_on": None}
+                break  # park at `hand_complete`; the next step deals the next hand
 
             if not betting.is_round_complete(new_state):
                 nxt = betting.next_to_act(new_state, new_state["action_on"])
@@ -270,8 +301,8 @@ class Poker(Game):
                         reason="elimination",
                         eliminated_this_tick=tuple(eliminated),
                     )
-                new_state = _start_next_hand(new_state)
-                break  # action_on set; next step picks up the new hand
+                new_state = {**new_state, "action_on": None}
+                break  # park at `hand_complete`; the next step deals the next hand
 
             new_state = betting.advance_phase(new_state)
             # If only one (or zero) eligible-to-act remain — everyone else
@@ -297,8 +328,8 @@ class Poker(Game):
                         reason="elimination",
                         eliminated_this_tick=tuple(eliminated),
                     )
-                new_state = _start_next_hand(new_state)
-                break  # action_on set by _start_next_hand; await next step
+                new_state = {**new_state, "action_on": None}
+                break  # park at `hand_complete`; the next step deals the next hand
 
             # Postflop new round: first eligible seat left of button leads.
             first = betting.first_to_act_postflop(new_state)

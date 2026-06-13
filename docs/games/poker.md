@@ -44,8 +44,8 @@ Legacy `Bot` subclasses still receive the same data as a plain dict.
 
 | Key | Meaning |
 |---|---|
-| `phase` | `"preflop" \| "flop" \| "turn" \| "river" \| "showdown" \| "between_hands"` |
-| `action_on` | seat that owes a decision (`None` when nothing to do) |
+| `phase` | `"preflop" \| "flop" \| "turn" \| "river" \| "showdown" \| "hand_complete" \| "done" \| "between_hands"` |
+| `action_on` | seat that owes a decision (`None` when nothing to do — e.g. on a `hand_complete` settle tick) |
 | `pot` | chips already committed and moved to the pot (does **not** include the current round's in-flight chips) |
 | `side_pots` | list of `{amount, eligible_seats}` after an all-in |
 | `community_cards` | the board: 0–5 cards depending on phase |
@@ -71,6 +71,18 @@ Per-seat in `state.players[i]`:
 | `in_tournament`, `in_hand`, `folded`, `all_in` | seat status flags |
 | `hole_cards` | your own at any time; others' only at showdown (otherwise `[]`) |
 | `last_action` | most recent action this hand or `None` |
+
+## Hand resolution
+
+When a hand ends, the engine emits the resolved state as its **own tick**
+before dealing the next hand: `phase` `"hand_complete"`, `action_on` `None`,
+`pot_distribution` filled with each winner's payout (one entry per pot layer —
+a seat can appear more than once on a split or side pot), and `showdown_hands`
+populated if it reached showdown. The next `step` then deals the following
+hand. A hand that ends the tournament resolves straight to `phase` `"done"`
+(keeping that final payout). This settle tick is the frame replays and the live
+UI animate the win/payout on; without it the resolution was overwritten by the
+next deal within the same step and never reached clients.
 
 ## Hidden information
 

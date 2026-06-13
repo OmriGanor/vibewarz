@@ -406,8 +406,9 @@ def test_heads_up_split_pot_chip_conservation():
         "pot": 200,
         "action_on": s["button"],
     }
-    # Two checks → showdown → split → next hand auto-starts with blinds
-    # posted, so check chip totals (stack + committed_round) per seat.
+    # Two checks → showdown → split → the hand parks at `hand_complete`
+    # (action_on=None) with the pot already awarded, so each seat is back to
+    # 1000 = stack + committed_round (committed_round is 0 at the settle tick).
     legal0 = p.legal_actions(s, s["action_on"])
     assert any(a["type"] == "check" for a in legal0)
     s = p.step(s, {s["action_on"]: {"type": "check"}}).state
@@ -566,3 +567,136 @@ def test_apply_deltas_reconstructs_authoritative_history():
             break
     assert client_history == state["history"]
     assert len(client_history) > 1  # exercised real growth across hands
+
+
+# ── hand_complete settle ticks (win / payout reveal) ───────────────────────
+
+
+def _resolve_one_hand(
+    p: Poker, state: dict, actions_by_actor: dict[int, dict[str, Any]] | None = None
+) -> dict:
+    """Step (defaulting every uncovered actor to fold) until the engine parks
+    at a `hand_complete` settle tick (action_on is None) or the tournament
+    ends. Returns that state WITHOUT dealing the next hand."""
+    actions_by_actor = actions_by_actor or {}
+    for _ in range(5_000):
+        actor = state["action_on"]
+        if actor is None:
+            return state
+        action = actions_by_actor.get(actor, {"type": "fold"})
+        result = p.step(state, {actor: action})
+        state = result.state
+        if result.done:
+            return state
+    raise AssertionError("safety cap hit")
+
+
+def _drive_full_game(p: Poker, state: dict, *, cap: int = 20_000) -> list[dict]:
+    """Auto-play (check, else call, else first legal) to completion, returning
+    every emitted post-step state — including the `hand_complete` settle ticks
+    and the terminal `done` state."""
+    emitted: list[dict] = []
+    for _ in range(cap):
+        actor = state["action_on"]
+        if actor is None:
+            result = p.step(state, {})
+        else:
+            legal = p.legal_actions(state, actor)
+            kinds = {a["type"] for a in legal}
+            pick = (
+                {"type": "check"}
+                if "check" in kinds
+                else {"type": "call"}
+                if "call" in kinds
+                else legal[0]
+            )
+            result = p.step(state, {actor: pick})
+        state = result.state
+        emitted.append(state)
+        if result.done:
+            return emitted
+    raise AssertionError("safety cap hit")
+
+
+def test_fold_around_parks_at_hand_complete_with_payout():
+    """A fold-around resolves to a discrete `hand_complete` settle tick
+    (action_on=None) carrying the uncontested payout — the frame the UI shows
+    the win on. Previously the next hand overwrote it within the same step, so
+    it never reached the journal or live clients."""
+    p = Poker()
+    s = p.initial_state(seed=11, num_players=4)
+    parked = _resolve_one_hand(p, s)  # everyone folds around to the BB
+    assert parked["phase"] == "hand_complete"
+    assert parked["action_on"] is None
+    assert parked["showdown_hands"] is None  # no showdown on a fold-around
+    assert parked["pot_distribution"], "settle tick must carry the payout"
+    # Uncontested: the lone winner collects exactly the blinds.
+    assert sum(d["amount"] for d in parked["pot_distribution"]) == (
+        parked["small_blind"] + parked["big_blind"]
+    )
+    # The NEXT step deals the following hand and clears the payout.
+    hand_no = parked["hand_number"]
+    nxt = p.step(parked, {}).state
+    assert nxt["hand_number"] == hand_no + 1
+    assert nxt["phase"] == "preflop"
+    assert nxt["action_on"] is not None
+    assert nxt["pot_distribution"] is None
+
+
+def test_showdown_parks_at_hand_complete_exposing_hands_and_split():
+    """A hand that reaches showdown parks at `hand_complete` with
+    `showdown_hands` populated (so the UI can name the result) and a
+    pot_distribution that credits every winner of a split pot."""
+    p = Poker()
+    s = p.initial_state(seed=2024, num_players=2)
+    # Synthetic split-on-board: the board is the nut straight and neither hole
+    # card improves it → both seats split. (Same construction as the chip-
+    # conservation test, asserted from the settle tick this time.)
+    s = {
+        **s,
+        "phase": "river",
+        "community_cards": ["5s", "6h", "7d", "8c", "9c"],
+        "current_bet": 0,
+        "min_raise": s["big_blind"],
+        "acted_this_round": [],
+        "players": [
+            {**s["players"][0], "hole_cards": ["2c", "3d"], "committed_round": 0,
+             "committed_hand": 100, "stack": 900, "in_hand": True, "folded": False, "all_in": False},
+            {**s["players"][1], "hole_cards": ["4c", "Kd"], "committed_round": 0,
+             "committed_hand": 100, "stack": 900, "in_hand": True, "folded": False, "all_in": False},
+        ],
+        "pot": 200,
+        "action_on": s["button"],
+    }
+    s = p.step(s, {s["action_on"]: {"type": "check"}}).state
+    parked = p.step(s, {s["action_on"]: {"type": "check"}}).state
+    assert parked["phase"] == "hand_complete"
+    assert parked["action_on"] is None
+    assert parked["showdown_hands"] is not None
+    assert set(parked["showdown_hands"]) == {0, 1}
+    assert {d["seat"] for d in parked["pot_distribution"]} == {0, 1}  # split
+
+
+def test_multi_hand_game_emits_settle_ticks_and_preserves_chips():
+    """Across a full game the engine emits discrete `hand_complete` settle
+    ticks (each carrying a payout) with chips conserved on every one, then ends
+    on a `done` state that keeps the final hand's payout."""
+    p = Poker()
+    initial = p.initial_state(seed=7, num_players=3)
+    start_chips = sum(pl["stack"] + pl["committed_round"] for pl in initial["players"])
+    emitted = _drive_full_game(p, initial)
+    settles = [
+        st for st in emitted if st["phase"] == "hand_complete" and st["action_on"] is None
+    ]
+    assert settles, "expected at least one hand_complete settle tick"
+    for st in settles:
+        assert st["pot_distribution"], "every settle tick carries a payout"
+        chips = sum(pl["stack"] + pl["committed_round"] for pl in st["players"]) + st["pot"]
+        assert chips == start_chips, f"chip drift at settle tick: {chips} != {start_chips}"
+    # The terminal state is the tournament-end `done`, which keeps the final
+    # hand's payout (it finalizes in the same step it resolves, never parking).
+    done = emitted[-1]
+    assert done["phase"] == "done"
+    assert done["action_on"] is None
+    assert done["pot_distribution"], "final award must survive on the done state"
+    assert len(done["placement"]) == 3

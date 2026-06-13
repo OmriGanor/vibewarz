@@ -27,6 +27,13 @@ export type PlaybackState = {
 export function usePlayback(
   totalFrames: number,
   baseTicksPerSec: number,
+  // Optional per-frame dwell (ms). When the current frame returns > 0 the loop
+  // holds on it that long before advancing — used to linger on poker's
+  // end-of-hand settle frames so the payout cheer is watchable. Games that omit
+  // it keep the uniform cadence. Scaled by `speed` like a normal frame. Keep
+  // the reference stable (useCallback) so the RAF loop isn't restarted each
+  // render.
+  holdMsForFrame?: (frame: number) => number,
 ): PlaybackState {
   const initialFrame = (() => {
     if (typeof window === "undefined") return 0;
@@ -42,16 +49,26 @@ export function usePlayback(
   const [speed, setSpeed] = useState<number>(1);
 
   const lastTickAdvance = useRef<number>(0);
+  // Mirror the current frame into a ref so the RAF loop can read it (to look up
+  // its dwell) without re-subscribing the effect every frame.
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
     const step = (ts: number) => {
       if (!lastTickAdvance.current) lastTickAdvance.current = ts;
       const elapsed = ts - lastTickAdvance.current;
-      const tickMs = 1000 / (baseTicksPerSec * speed);
-      if (elapsed >= tickMs) {
-        const steps = Math.floor(elapsed / tickMs);
+      const baseMs = 1000 / (baseTicksPerSec * speed);
+      // A frame can ask to be held longer (poker's settle frame, so the payout
+      // cheer plays out). The hold scales with `speed` like the base cadence;
+      // while holding we advance exactly one frame so the dwell isn't batched
+      // away by a large `elapsed`.
+      const holdMs = holdMsForFrame ? holdMsForFrame(frameRef.current) / speed : 0;
+      const dwell = Math.max(baseMs, holdMs);
+      if (elapsed >= dwell) {
         lastTickAdvance.current = ts;
+        const steps = holdMs > 0 ? 1 : Math.max(1, Math.floor(elapsed / baseMs));
         setFrame((f) => {
           const next = f + steps;
           if (next >= totalFrames - 1) {
@@ -65,7 +82,7 @@ export function usePlayback(
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [playing, speed, totalFrames, baseTicksPerSec]);
+  }, [playing, speed, totalFrames, baseTicksPerSec, holdMsForFrame]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

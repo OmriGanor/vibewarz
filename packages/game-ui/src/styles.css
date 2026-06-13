@@ -523,3 +523,180 @@
   box-shadow: 0 0 6px color-mix(in srgb, var(--vw-color-accent) 55%, transparent);
   flex-shrink: 0;
 }
+
+/* ── Poker — end-of-hand win / payout cheer ──────────────────────────────
+   Overlaid on the felt by PokerBoard whenever a hand resolves
+   (phase hand_complete|done) — chips fly from the pot to the winner(s),
+   confetti bursts, amount badges pop, the winner plate glows gold. It's a
+   pure function of state, so it renders the same in replays and live play.
+   Every sub-duration is a fraction of --vw-payout-dur (set per surface: ~1s in
+   replays, ~3s in gameplay) so the same choreography fits either window. The
+   overlay is re-keyed per hand so it re-fires each round. */
+.vw-poker__payout {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  --vw-payout-dur: 3000ms;
+}
+
+.vw-poker__payout-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 44%,
+    rgba(0, 0, 0, 0) 32%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+  opacity: 0;
+  animation: vw-poker-fade-in calc(var(--vw-payout-dur) * 0.18) ease forwards;
+}
+
+/* Won chips sliding from the pot (--vw-from-*) to in front of the winner
+   (--vw-to-*). Discs are round, so they need no portrait counter-rotation. */
+.vw-poker__payout-pile {
+  position: absolute;
+  animation: vw-poker-fly calc(var(--vw-payout-dur) * 0.34)
+    cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes vw-poker-fly {
+  from {
+    left: var(--vw-from-x);
+    top: var(--vw-from-y);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    left: var(--vw-to-x);
+    top: var(--vw-to-y);
+    opacity: 1;
+  }
+}
+
+/* "+amount" badge that fades in once the chips land (delay set inline). */
+.vw-poker__payout-badge {
+  position: absolute;
+  z-index: 1;
+  font-family: var(--vw-font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0a0a0b;
+  background: linear-gradient(180deg, #fde047, #f59e0b);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 12px rgba(253, 224, 71, 0.5);
+  white-space: nowrap;
+  opacity: 0;
+  animation: vw-poker-fade-in calc(var(--vw-payout-dur) * 0.18) ease-out both;
+}
+
+/* Central result banner (winner + amount + made hand / "uncontested"). A solid
+   dark panel keeps the text legible over the busy felt + community cards. */
+.vw-poker__payout-banner {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  text-align: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(8, 10, 14, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  animation: vw-poker-fade-in calc(var(--vw-payout-dur) * 0.2) ease both;
+  animation-delay: calc(var(--vw-payout-dur) * 0.08);
+}
+
+.vw-poker__payout-title {
+  font-family: var(--vw-font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+}
+
+.vw-poker__payout-sub {
+  margin-top: 0.2rem;
+  font-family: var(--vw-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--vw-color-accent);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Tournament-win finale — bigger, gold, centered. */
+.vw-poker__payout--final .vw-poker__payout-banner {
+  top: 50%;
+  background: rgba(8, 10, 14, 0.9);
+  border-color: rgba(253, 224, 71, 0.5);
+  box-shadow: 0 0 26px rgba(253, 224, 71, 0.35), 0 8px 28px rgba(0, 0, 0, 0.7);
+}
+
+.vw-poker__payout--final .vw-poker__payout-title {
+  font-size: 1.35rem;
+  color: #fde047;
+  text-shadow: 0 0 18px rgba(253, 224, 71, 0.7), 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+/* Confetti burst — particles fan out from (left,top)% by (dx,dy) with rotation
+   (vars set inline, derived from index → deterministic across replays). */
+.vw-poker__confetti {
+  position: absolute;
+  inset: 0;
+}
+
+.vw-poker__confetti-bit {
+  position: absolute;
+  width: 7px;
+  height: 11px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: vw-poker-confetti calc(var(--vw-payout-dur) * 0.72) ease-out both;
+}
+
+@keyframes vw-poker-confetti {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--vw-c-dx), var(--vw-c-dy))
+      rotate(var(--vw-c-r));
+    opacity: 0;
+  }
+}
+
+@keyframes vw-poker-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: drop the travel + confetti, keep the result readable —
+   chips rest at the landing spot; badges/banner just appear. */
+@media (prefers-reduced-motion: reduce) {
+  .vw-poker__confetti {
+    display: none;
+  }
+  .vw-poker__payout-pile {
+    animation: none;
+    left: var(--vw-to-x);
+    top: var(--vw-to-y);
+    opacity: 1;
+  }
+  .vw-poker__payout-badge,
+  .vw-poker__payout-banner,
+  .vw-poker__payout-scrim {
+    animation: none;
+    opacity: 1;
+  }
+}

@@ -1,12 +1,19 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { Card, CardRow } from "./card";
-import { ChipStack, DealerButton } from "./chip";
+import { ChipPile, ChipStack, DealerButton } from "./chip";
+import { PayoutOverlay } from "./payout";
 import type { PokerPlayer, PokerState } from "./types";
 
 const MONO = "ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace";
+
+// End-of-hand win/payout cheer duration (ms). Deliberately different per
+// surface: gameplay lingers on the celebration; replays keep it snappy so a
+// full multi-hand tournament stays watchable end to end.
+export const LIVE_PAYOUT_MS = 3000; // gameplay (live)
+export const REPLAY_PAYOUT_MS = 1000; // replay
 
 export type SeatInfo = {
   seat: number;
@@ -83,13 +90,52 @@ function actionLabel(a: PokerPlayer["last_action"]): string | null {
   return null;
 }
 
+// Freeze a resolved hand (phase hand_complete|done) on screen for `holdMs`
+// before showing whatever streamed in next — so a LIVE client plays the full
+// payout cheer even when the engine's next-hand state arrives immediately
+// after the settle tick. holdMs<=0 is a passthrough: replays pass 0 and let
+// playback dwell on the frame instead, which keeps scrubbing deterministic.
+function useHeldState(state: PokerState | null, holdMs: number): PokerState | null {
+  const [shown, setShown] = useState<PokerState | null>(state);
+  const latest = useRef<PokerState | null>(state);
+  const pinnedUntil = useRef(0);
+  latest.current = state;
+
+  useEffect(() => {
+    if (holdMs <= 0) {
+      setShown(state);
+      return;
+    }
+    const now = typeof performance !== "undefined" ? performance.now() : 0;
+    const isResult =
+      !!state && (state.phase === "hand_complete" || state.phase === "done");
+    if (isResult) {
+      // Pin this result; show it now.
+      pinnedUntil.current = now + holdMs;
+      setShown(state);
+      return;
+    }
+    const remaining = pinnedUntil.current - now;
+    if (remaining > 0) {
+      // Still cheering a prior result — defer this state until the hold ends.
+      const t = setTimeout(() => setShown(latest.current), remaining);
+      return () => clearTimeout(t);
+    }
+    setShown(state);
+  }, [state, holdMs]);
+
+  return holdMs <= 0 ? state : shown;
+}
+
 export function PokerBoard({
-  state,
+  state: stateProp,
   mySeat,
   seatInfo,
   revealAll = false,
   rotate90 = false,
   emphasizeMe = true,
+  payoutMs = LIVE_PAYOUT_MS,
+  resultHoldMs = LIVE_PAYOUT_MS,
 }: {
   state: PokerState | null;
   mySeat: number | null;
@@ -105,7 +151,18 @@ export function PokerBoard({
   // and counter-rotate the readable bits (cards/plates/pot) back to upright —
   // they end up smaller. The felt/oval turns; the content stays legible.
   rotate90?: boolean;
+  // End-of-hand win cheer duration (ms). Defaults to the gameplay value;
+  // replays pass REPLAY_PAYOUT_MS for a snappier reveal.
+  payoutMs?: number;
+  // How long to freeze a resolved hand on screen so the cheer plays in full
+  // during LIVE play (the engine emits the result as a single tick, then deals
+  // the next hand). Defaults to the gameplay cheer length; replays pass 0 and
+  // dwell on the settle frame via playback instead (keeps scrubbing exact).
+  resultHoldMs?: number;
 }) {
+  // Live: latch the resolved hand for `resultHoldMs` so the cheer isn't cut off
+  // by the next deal. Replay: passthrough (resultHoldMs=0) — playback dwells.
+  const state = useHeldState(stateProp, resultHoldMs);
   const handleBySeat = new Map(seatInfo?.map((s) => [s.seat, s]) ?? []);
   if (!state) {
     return (
@@ -130,6 +187,16 @@ export function PokerBoard({
   // Portrait: counter-rotate every readable element so it stays upright while
   // the felt/oval spins. Cards shrink a notch to fit the narrower portrait.
   const cr = rotate90 ? " rotate(-90deg)" : "";
+
+  // End-of-hand payout: the settle (`hand_complete`) and `done` states carry
+  // `pot_distribution`. Winners get a golden plate ring; the PayoutOverlay
+  // plays the cheer (chips fly to winners, confetti, amount badges). Pure
+  // function of state, so it shows identically in replays and in live play.
+  const payoutDist =
+    state.phase === "hand_complete" || state.phase === "done"
+      ? state.pot_distribution
+      : null;
+  const winningSeats = new Set((payoutDist ?? []).map((d) => d.seat));
 
   // The landscape (16:9) table, identical in both orientations. In portrait it
   // gets spun 90° as a unit by the wrapper below.
@@ -192,6 +259,13 @@ export function PokerBoard({
         <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 600, color: "#fff" }}>
           {state.pot}
         </div>
+        {state.pot > 0 && (
+          // Chip pile sized to the pot — a visual read on how big it is, drawn
+          // proportional to the actual chip count (broken into denominations).
+          <div style={{ marginTop: 2 }} aria-hidden>
+            <ChipPile amount={state.pot} unit={rotate90 ? 10 : 13} />
+          </div>
+        )}
         <div style={{ marginTop: 4 }}>
           <CardRow cards={state.community_cards} empty={5} size={rotate90 ? "sm" : "md"} />
         </div>
@@ -210,6 +284,7 @@ export function PokerBoard({
             isMe={player.seat === mySeat}
             isButton={player.seat === state.button}
             isActor={player.seat === state.action_on}
+            won={winningSeats.has(player.seat)}
             showdown={showdown}
             x={pos.x}
             y={pos.y}
@@ -246,6 +321,21 @@ export function PokerBoard({
             </div>
           ))}
         </div>
+      )}
+
+      {/* End-of-hand win cheer. Keyed by hand+phase so it remounts (re-fires
+          the animation) each hand and on the hand_complete→done transition. */}
+      {payoutDist && payoutDist.length > 0 && (
+        <PayoutOverlay
+          key={`${state.hand_number}-${state.phase}`}
+          state={state}
+          positions={positions}
+          anchor={anchor}
+          n={N}
+          seatInfo={seatInfo}
+          counterRotate={cr}
+          payoutMs={payoutMs}
+        />
       )}
     </div>
   );
@@ -312,6 +402,7 @@ function Seat({
   isMe,
   isButton,
   isActor,
+  won = false,
   showdown,
   x,
   y,
@@ -324,6 +415,9 @@ function Seat({
   isMe: boolean;
   isButton: boolean;
   isActor: boolean;
+  // Won (a share of) the pot this hand — gets the golden winner glow during
+  // the end-of-hand payout cheer.
+  won?: boolean;
   showdown: boolean;
   x: number;
   y: number;
@@ -369,12 +463,18 @@ function Seat({
       Math.abs(dirY) > 1e-6 ? halfH / Math.abs(dirY) : Infinity,
     ) + btnGapPx;
 
-  const ringStyle: CSSProperties = isActor
+  const ringStyle: CSSProperties = won
     ? {
-        boxShadow:
-          "0 0 0 2px var(--vw-color-accent), 0 0 18px 4px rgba(163, 230, 53, 0.45)",
+        // Winner of the hand — golden glow during the payout cheer (takes
+        // precedence; the actor ring is moot once the hand has resolved).
+        boxShadow: "0 0 0 2px #fde047, 0 0 22px 6px rgba(253, 224, 71, 0.6)",
       }
-    : { boxShadow: "0 4px 12px rgba(0,0,0,0.55)" };
+    : isActor
+      ? {
+          boxShadow:
+            "0 0 0 2px var(--vw-color-accent), 0 0 18px 4px rgba(163, 230, 53, 0.45)",
+        }
+      : { boxShadow: "0 4px 12px rgba(0,0,0,0.55)" };
 
   return (
     <>

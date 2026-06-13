@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { PlaybackControls, usePlayback } from "./controls";
 import { AspectSelect, ReplayFrame, ASPECT_RATIOS, type AspectRatio } from "./frame";
-import { PokerBoard, type SeatInfo } from "./poker/board";
+import { PokerBoard, REPLAY_PAYOUT_MS, type SeatInfo } from "./poker/board";
 import type { PokerState } from "./poker/types";
 import { seatLabel, type RawEvent, type RawGameEndEvt } from "./types";
 
@@ -51,7 +51,20 @@ export function PokerReplay({
 }) {
   const frames = useMemo(() => buildPokerFrames(events), [events]);
   const totalFrames = frames.length;
-  const playback = usePlayback(totalFrames, POKER_TICKS_PER_SEC);
+  // Linger on the end-of-hand settle frames (and the final `done` frame) so the
+  // payout cheer is watchable during autoplay, then resume the normal cadence.
+  const holdFrames = useMemo(() => {
+    const s = new Set<number>();
+    frames.forEach((f, i) => {
+      if (f.state.phase === "hand_complete" || f.state.phase === "done") s.add(i);
+    });
+    return s;
+  }, [frames]);
+  const holdMsForFrame = useCallback(
+    (i: number) => (holdFrames.has(i) ? REPLAY_PAYOUT_MS : 0),
+    [holdFrames],
+  );
+  const playback = usePlayback(totalFrames, POKER_TICKS_PER_SEC, holdMsForFrame);
   const current = frames[Math.min(playback.frame, Math.max(0, totalFrames - 1))];
   const finalPlacement =
     (events[events.length - 1] as RawGameEndEvt | undefined)?.placement ?? [];
@@ -170,6 +183,10 @@ export function PokerReplay({
           revealAll={revealAll}
           rotate90={ratio === "9:16"}
           emphasizeMe={false}
+          // Replay: snappy 1s cheer, and no latch — playback dwells on the
+          // settle frame instead (so scrubbing stays exact and deterministic).
+          payoutMs={REPLAY_PAYOUT_MS}
+          resultHoldMs={0}
         />
       </ReplayFrame>
       <PlaybackControls
