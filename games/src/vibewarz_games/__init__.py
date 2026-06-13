@@ -8,6 +8,7 @@ from .blast import game as _blast_module  # noqa: F401  side-effect: registers B
 from .curve import game as _curve_module  # noqa: F401  side-effect: registers Curve
 from .poker import game as _poker_module  # noqa: F401  side-effect: registers Poker
 from .vibelords import game as _vibelords_module  # noqa: F401  side-effect: registers Vibelords
+from .chinese_poker import game as _chinese_poker_module  # noqa: F401  side-effect: registers ChinesePoker
 
 __all__ = ["GAMES", "Game", "GameMeta", "StepResult", "register"]
 __version__ = "0.1.0"
