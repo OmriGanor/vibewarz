@@ -28,6 +28,7 @@ export {
   PokerBoard,
   LIVE_PAYOUT_MS,
   REPLAY_PAYOUT_MS,
+  type PokerTurnTimerOptions,
   type SeatInfo,
 } from "./poker/board";
 export { Card, CardRow, type CardSize } from "./poker/card";

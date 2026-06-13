@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { Card, CardRow } from "./card";
 import { ChipPile, ChipStack, DealerButton } from "./chip";
@@ -8,6 +8,11 @@ import { PayoutOverlay } from "./payout";
 import type { PokerPlayer, PokerState } from "./types";
 
 const MONO = "ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace";
+const POKER_TURN_DURATION_MS = 15_000;
+const TIMER_DANGER_SECONDS = 5;
+const TIMER_TICK_SOUND_SECONDS = 10;
+
+let timerAudioContext: AudioContext | null = null;
 
 // End-of-hand win/payout cheer duration (ms). Deliberately different per
 // surface: gameplay lingers on the celebration; replays keep it snappy so a
@@ -20,6 +25,32 @@ export type SeatInfo = {
   handle: string;
   is_bot: boolean;
   bot_label: string | null;
+};
+
+export type PokerTurnTimerOptions = {
+  // Unix epoch ms deadline from TickRequestS2C.deadline_ts. If omitted, the
+  // board starts a local countdown when the viewer's turn begins.
+  deadlineTs?: number | null;
+  // Defaults to Poker.meta.tick_deadline_ms (15s).
+  durationMs?: number;
+  // Enabled by default. Browser autoplay policy may silence this until the
+  // player has interacted with the page.
+  playTickSound?: boolean;
+};
+
+const DEFAULT_TURN_TIMER: PokerTurnTimerOptions = {};
+
+type SeatTurnTimerConfig = {
+  deadlineTs: number | null;
+  durationMs: number;
+  playTickSound: boolean;
+  turnKey: string;
+};
+
+type SeatTurnTimerDisplay = {
+  secondsRemaining: number;
+  progress: number;
+  danger: boolean;
 };
 
 // Seat positions on the felt, expressed as percentages relative to the
@@ -136,6 +167,7 @@ export function PokerBoard({
   emphasizeMe = true,
   payoutMs = LIVE_PAYOUT_MS,
   resultHoldMs = LIVE_PAYOUT_MS,
+  turnTimer = DEFAULT_TURN_TIMER,
 }: {
   state: PokerState | null;
   mySeat: number | null;
@@ -159,6 +191,10 @@ export function PokerBoard({
   // the next hand). Defaults to the gameplay cheer length; replays pass 0 and
   // dwell on the settle frame via playback instead (keeps scrubbing exact).
   resultHoldMs?: number;
+  // Live play: pass `{ deadlineTs, durationMs }` from the current
+  // tick_request/match_found for server-anchored time, or `null` to disable
+  // the local 15s countdown (used by replays).
+  turnTimer?: PokerTurnTimerOptions | null;
 }) {
   // Live: latch the resolved hand for `resultHoldMs` so the cheer isn't cut off
   // by the next deal. Replay: passthrough (resultHoldMs=0) — playback dwells.
@@ -187,6 +223,15 @@ export function PokerBoard({
   // Portrait: counter-rotate every readable element so it stays upright while
   // the felt/oval spins. Cards shrink a notch to fit the narrower portrait.
   const cr = rotate90 ? " rotate(-90deg)" : "";
+  const activeTurnTimer: SeatTurnTimerConfig | null =
+    turnTimer !== null && mySeat !== null && state.action_on === mySeat
+      ? {
+          deadlineTs: turnTimer.deadlineTs ?? null,
+          durationMs: Math.max(1, turnTimer.durationMs ?? POKER_TURN_DURATION_MS),
+          playTickSound: turnTimer.playTickSound !== false,
+          turnKey: `${state.hand_number}:${state.tick}:${state.action_on}`,
+        }
+      : null;
 
   // End-of-hand payout: the settle (`hand_complete`) and `done` states carry
   // `pot_distribution`. Winners get a golden plate ring; the PayoutOverlay
@@ -285,6 +330,7 @@ export function PokerBoard({
             isButton={player.seat === state.button}
             isActor={player.seat === state.action_on}
             won={winningSeats.has(player.seat)}
+            turnTimer={player.seat === mySeat ? activeTurnTimer : null}
             showdown={showdown}
             x={pos.x}
             y={pos.y}
@@ -409,6 +455,7 @@ function Seat({
   counterRotate = "",
   compact = false,
   emphasizeMe = true,
+  turnTimer = null,
 }: {
   player: PokerPlayer;
   info: SeatInfo | undefined;
@@ -418,6 +465,7 @@ function Seat({
   // Won (a share of) the pot this hand — gets the golden winner glow during
   // the end-of-hand payout cheer.
   won?: boolean;
+  turnTimer?: SeatTurnTimerConfig | null;
   showdown: boolean;
   x: number;
   y: number;
@@ -589,6 +637,8 @@ function Seat({
             )}
           </div>
 
+          {turnTimer && <TurnTimerBadge timer={turnTimer} />}
+
           {last && (
             <div
               style={{
@@ -635,4 +685,149 @@ function Seat({
       )}
     </>
   );
+}
+
+function TurnTimerBadge({ timer }: { timer: SeatTurnTimerConfig }) {
+  const [localDeadlineTs, setLocalDeadlineTs] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const lastSoundSecondRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (timer.deadlineTs !== null) {
+      setLocalDeadlineTs(null);
+      return;
+    }
+    setLocalDeadlineTs(Date.now() + timer.durationMs);
+  }, [timer.turnKey, timer.deadlineTs, timer.durationMs]);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+    const interval = window.setInterval(() => setNowMs(Date.now()), 200);
+    return () => window.clearInterval(interval);
+  }, [timer.turnKey, timer.deadlineTs]);
+
+  useEffect(() => {
+    lastSoundSecondRef.current = null;
+  }, [timer.turnKey]);
+
+  const deadlineTs = timer.deadlineTs ?? localDeadlineTs ?? nowMs + timer.durationMs;
+  const remainingMs = Math.max(0, deadlineTs - nowMs);
+  const secondsRemaining = Math.ceil(remainingMs / 1000);
+  const display: SeatTurnTimerDisplay = {
+    secondsRemaining,
+    progress: Math.max(0, Math.min(1, remainingMs / timer.durationMs)),
+    danger: secondsRemaining <= TIMER_DANGER_SECONDS,
+  };
+
+  useEffect(() => {
+    if (!timer.playTickSound) return;
+    if (secondsRemaining <= 0 || secondsRemaining > TIMER_TICK_SOUND_SECONDS) return;
+    if (lastSoundSecondRef.current === secondsRemaining) return;
+    lastSoundSecondRef.current = secondsRemaining;
+    void playTimerTick();
+  }, [timer.playTickSound, secondsRemaining]);
+
+  const color = display.danger ? "var(--vw-color-danger)" : "var(--vw-color-accent)";
+  return (
+    <div
+      aria-label={`Turn timer: ${display.secondsRemaining} seconds remaining`}
+      style={{
+        width: "100%",
+        maxWidth: 118,
+        borderRadius: 999,
+        padding: "3px 6px 4px",
+        background: "rgba(0,0,0,0.45)",
+        border: `1px solid ${color}`,
+        boxShadow: display.danger
+          ? "0 0 12px rgba(244,63,94,0.35)"
+          : "0 0 10px rgba(163,230,53,0.25)",
+        fontFamily: MONO,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          fontSize: 10,
+          lineHeight: 1,
+          color,
+          fontWeight: 800,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: color,
+            boxShadow: `0 0 8px ${color}`,
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ color: "var(--vw-color-text-muted)", fontWeight: 700 }}>TURN</span>
+        <span>{formatTimer(display.secondsRemaining)}</span>
+      </div>
+      <div
+        aria-hidden
+        style={{
+          height: 3,
+          marginTop: 4,
+          borderRadius: 999,
+          overflow: "hidden",
+          background: "rgba(255,255,255,0.08)",
+        }}
+      >
+        <div
+          style={{
+            width: `${display.progress * 100}%`,
+            height: "100%",
+            borderRadius: 999,
+            background: color,
+            transition: "width 180ms linear, background-color 180ms ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function formatTimer(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+async function playTimerTick() {
+  if (typeof window === "undefined") return;
+  const AudioContextCtor =
+    window.AudioContext ??
+    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextCtor) return;
+
+  try {
+    timerAudioContext ??= new AudioContextCtor();
+    const ctx = timerAudioContext;
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const start = ctx.currentTime;
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(880, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.035, start + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.07);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.075);
+  } catch {
+    // Audio may be blocked before a browser gesture; the visual timer still runs.
+  }
 }

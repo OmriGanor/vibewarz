@@ -187,6 +187,7 @@ export function PokerReplay({
           // settle frame instead (so scrubbing stays exact and deterministic).
           payoutMs={REPLAY_PAYOUT_MS}
           resultHoldMs={0}
+          turnTimer={null}
         />
       </ReplayFrame>
       <PlaybackControls
