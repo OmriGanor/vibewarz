@@ -11,7 +11,6 @@ import {
 import "@vibewarz/game-ui/styles.css";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { LiveApp } from "./live";
 
 function App() {
   const [replay, setReplay] = useState<RawReplay | null>(null);
@@ -89,8 +88,6 @@ if (!root) throw new Error("missing #root");
 const showAssets =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).has("assets");
-const isLive = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("live");
-
 createRoot(root).render(
-  <StrictMode>{showAssets ? <VibelordsAssetSheet /> : (isLive ? <LiveApp /> : <App />)}</StrictMode>,
+  <StrictMode>{showAssets ? <VibelordsAssetSheet /> : <App />}</StrictMode>,
 );
