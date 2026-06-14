@@ -31,6 +31,14 @@ export {
   type PokerTurnTimerOptions,
   type SeatInfo,
 } from "./poker/board";
+export { ChinesePokerReplay, buildChinesePokerFrames } from "./chinese_poker";
+export { ChinesePokerBoard } from "./chinese_poker/board";
+export type {
+  ChinesePokerState,
+  ChinesePokerPlayer,
+  ChinesePokerPhase,
+  ChinesePokerAction,
+} from "./chinese_poker/types";
 export { Card, CardRow, type CardSize } from "./poker/card";
 export { ChipStack, ChipPile, DealerButton } from "./poker/chip";
 export {

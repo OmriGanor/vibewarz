@@ -67,5 +67,6 @@ export function detectGameId(replay: RawReplay): string | null {
   if ("board" in s && "bombs" in s) return "blast";
   if ("trails" in s || "trail_delta" in s) return "curve";
   if ("bases" in s && "units" in s && "lane" in s) return "vibelords";
+  if ("current_drawn_card" in s || (s.players && Array.isArray(s.players) && s.players.length > 0 && "columns" in s.players[0])) return "chinese_poker";
   return null;
 }

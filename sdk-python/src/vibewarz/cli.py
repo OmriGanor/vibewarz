@@ -17,6 +17,7 @@ from .client import Client, default_api_url
 from .play_local import DEFAULT_REPLAY_DIR
 from .play_local import play as play_in_process
 from .runner import run as run_bot
+from .play_ui import play_ui as play_ui_in_process
 
 app = typer.Typer(add_completion=False, help="vibewarz — write bots, climb leaderboards.")
 
@@ -128,6 +129,29 @@ def play_local(
     if result.replay_path is not None:
         typer.echo(f"replay: {result.replay_path}")
         typer.echo(f"watch:  vibewarz replay {result.match_id} --watch")
+
+
+@app.command("play-ui")
+def play_ui(
+    game: str = typer.Option(..., help="Game id, e.g. curve | poker | blast."),
+    bot: Path = typer.Option(..., "--bot", help="Path to a bot script for the opponent."),
+    port: int = typer.Option(8080, help="Port to run the UI server on."),
+    seed: int = typer.Option(None, help="Random seed for reproducible matches."),
+) -> None:
+    """Run an interactive match against a bot using the web UI."""
+    if not bot.exists() or not bot.is_file():
+        typer.echo(f"bot file not found: {bot}", err=True)
+        raise typer.Exit(1)
+    try:
+        play_ui_in_process(
+            game_id=game,
+            bot_path=bot,
+            port=port,
+            seed=seed,
+        )
+    except RuntimeError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
 
 
 @app.command()

@@ -4,12 +4,14 @@ import {
   BlastReplay,
   CurveReplay,
   PokerReplay,
+  ChinesePokerReplay,
   detectGameId,
   type RawReplay,
 } from "@vibewarz/game-ui";
 import "@vibewarz/game-ui/styles.css";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { LiveApp } from "./live";
 
 function App() {
   const [replay, setReplay] = useState<RawReplay | null>(null);
@@ -70,6 +72,8 @@ function App() {
         <BlastReplay events={replay.events} />
       ) : game === "poker" ? (
         <PokerReplay events={replay.events} />
+      ) : game === "chinese_poker" ? (
+        <ChinesePokerReplay events={replay.events} />
       ) : (
         <div className="vw-app__error">
           Replay loaded ({replay.events.length} events), but no renderer is
@@ -85,6 +89,8 @@ if (!root) throw new Error("missing #root");
 const showAssets =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).has("assets");
+const isLive = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("live");
+
 createRoot(root).render(
-  <StrictMode>{showAssets ? <VibelordsAssetSheet /> : <App />}</StrictMode>,
+  <StrictMode>{showAssets ? <VibelordsAssetSheet /> : (isLive ? <LiveApp /> : <App />)}</StrictMode>,
 );
