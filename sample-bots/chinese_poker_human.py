@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-
 from vibewarz import (
     ChinesePokerBot,
-    ChinesePokerCheckAction,
-    ChinesePokerCallAction,
-    ChinesePokerFoldAction,
     ChinesePokerPlaceAction,
-    ChinesePokerRaiseAction,
     ChinesePokerState,
 )
 
@@ -21,51 +15,26 @@ class ChinesePokerHumanBot(ChinesePokerBot):
     def act(self, state: ChinesePokerState):
         legal = self.legal_actions(state)
         if not legal:
-            return ChinesePokerCheckAction()  # safety fallback
-            
-        print("\n" + "="*40)
-        print(f"--- Hand {state.hand_number} | Phase: {state.phase} | Pot: {state.pot} ---")
-        
+            return ChinesePokerPlaceAction(column=0)  # shouldn't be reached
+
+        print("\n" + "=" * 40)
+        print(f"--- Phase: {state.phase} ---")
+
         my_player = state.player(self.seat)
         print("Your board:")
         for i, col in enumerate(my_player.columns):
             print(f"  Col {i}: {col}")
-            
-        if state.phase == "placing":
-            print(f"\nDrawn Card: {state.current_drawn_card}")
-            
-        print("\nLegal Actions:")
-        for i, action in enumerate(legal):
-            print(f"  [{i}] {action}")
-            
+        print(f"\nDrawn card: {state.current_drawn_card}")
+
+        legal_columns = [a["column"] for a in legal]
+        print(f"Place it in one of columns: {legal_columns}")
+
         while True:
             try:
-                choice = input(f"Choose an action (0-{len(legal)-1}): ")
-                idx = int(choice.strip())
-                if 0 <= idx < len(legal):
-                    action_dict = legal[idx]
-                    
-                    if action_dict["type"] == "place":
-                        return ChinesePokerPlaceAction(column=action_dict["column"])
-                    elif action_dict["type"] == "check":
-                        return ChinesePokerCheckAction()
-                    elif action_dict["type"] == "call":
-                        return ChinesePokerCallAction()
-                    elif action_dict["type"] == "fold":
-                        return ChinesePokerFoldAction()
-                    elif action_dict["type"] == "raise":
-                        # If the action has 'max_raise' and 'min_raise', we might want to prompt
-                        min_r = action_dict.get("min_raise", state.min_raise)
-                        max_r = action_dict.get("max_raise", my_player.stack)
-                        amt = input(f"Raise amount ({min_r} - {max_r}) [default {min_r}]: ")
-                        if not amt.strip():
-                            amt_val = min_r
-                        else:
-                            amt_val = int(amt.strip())
-                        return ChinesePokerRaiseAction(to=amt_val)
-                    
-                    # Fallback if something else
-                    return action_dict
-            except Exception as e:
+                choice = input(f"Choose a column {legal_columns}: ").strip()
+                column = int(choice)
+                if column in legal_columns:
+                    return ChinesePokerPlaceAction(column=column)
+                print("That column is not currently legal.")
+            except (ValueError, EOFError) as e:
                 print(f"Invalid input: {e}")
-

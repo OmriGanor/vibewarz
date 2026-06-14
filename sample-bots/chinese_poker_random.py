@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 
-from vibewarz import ChinesePokerBot, ChinesePokerCheckAction, ChinesePokerState
+from vibewarz import ChinesePokerBot, ChinesePokerPlaceAction, ChinesePokerState
 
 
 class ChinesePokerRandomBot(ChinesePokerBot):
@@ -16,5 +16,5 @@ class ChinesePokerRandomBot(ChinesePokerBot):
     def act(self, state: ChinesePokerState):
         legal = self.legal_actions(state)
         if not legal:
-            return ChinesePokerCheckAction()  # safety fallback
+            return ChinesePokerPlaceAction(column=0)  # shouldn't be reached
         return self._rng.choice(legal)

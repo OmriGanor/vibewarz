@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { Card } from "../poker/card";
-import { DealerButton } from "../poker/chip";
 import type { ChinesePokerPlayer, ChinesePokerState, ChinesePokerAction } from "./types";
 
 const MONO = "ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace";
@@ -25,10 +24,6 @@ const headerCell: CSSProperties = {
 function actionLabel(a: ChinesePokerPlayer["last_action"]): string | null {
   if (!a) return null;
   if (a.type === "place") return `place col ${a.column + 1}`;
-  if (a.type === "fold") return "fold";
-  if (a.type === "check") return "check";
-  if (a.type === "call") return "call";
-  if (a.type === "raise") return `raise to ${(a as { to: number }).to}`;
   return null;
 }
 
@@ -44,7 +39,6 @@ export function ChinesePokerBoard({
   humanSeat?: number;
 }) {
   const handleBySeat = new Map(seatInfo?.map((s) => [s.seat, s]) ?? []);
-  const [raiseAmount, setRaiseAmount] = useState<string>("");
   if (!state) {
     return (
       <div
@@ -56,9 +50,23 @@ export function ChinesePokerBoard({
           background: "linear-gradient(180deg, #1a1a1f 0%, #0a0a0b 100%)",
         }}
       >
-        waiting for hand to start…
+        waiting for game to start…
       </div>
     );
+  }
+
+  const handleFor = (seat: number) =>
+    handleBySeat.get(seat)?.handle ?? `Seat ${seat}`;
+
+  let resultText: string | null = null;
+  if (state.phase === "done") {
+    if (state.winner === -1 || state.winner == null) {
+      resultText = "Draw";
+    } else if (state.winner === humanSeat) {
+      resultText = "You Won!";
+    } else {
+      resultText = `${handleFor(state.winner)} Won!`;
+    }
   }
 
   return (
@@ -81,17 +89,14 @@ export function ChinesePokerBoard({
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: "1rem", alignItems: "baseline" }}>
           <span style={{ ...headerCell, color: "var(--vw-color-accent)" }}>
-            hand #{state.hand_number}
+            Chinese Poker
           </span>
           <span style={headerCell}>{state.phase}</span>
-        </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "baseline" }}>
-          <span style={headerCell}>pot: {state.pot}</span>
         </div>
       </div>
 
       {/* Game Over Banner */}
-      {state.phase === "done" && state.placement && state.placement.length > 0 && (
+      {resultText && (
         <div style={{
           position: "absolute",
           top: "50%",
@@ -107,60 +112,8 @@ export function ChinesePokerBoard({
           backdropFilter: "blur(4px)",
         }}>
           <h2 style={{ fontFamily: MONO, color: "var(--vw-color-accent)", margin: 0, fontSize: 24, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            {state.placement[0] === humanSeat ? "You Won!" : `${handleBySeat.get(state.placement[0])?.handle ?? `Seat ${state.placement[0]}`} Won!`}
+            {resultText}
           </h2>
-        </div>
-      )}
-
-      {/* Hand Complete Banner */}
-      {state.phase === "hand_complete" && (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "rgba(0,0,0,0.85)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          padding: "24px 48px",
-          borderRadius: 16,
-          zIndex: 40,
-          textAlign: "center",
-          backdropFilter: "blur(4px)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 16,
-        }}>
-          <h2 style={{ fontFamily: MONO, color: "#fff", margin: 0, fontSize: 18, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Hand Complete
-          </h2>
-          {state.pot_distribution?.length === 1 ? (
-            <h3 style={{ fontFamily: MONO, color: "var(--vw-color-accent)", margin: 0, fontSize: 20 }}>
-              {state.pot_distribution[0].seat === humanSeat ? "You Won the Hand!" : `${handleBySeat.get(state.pot_distribution[0].seat)?.handle ?? `Seat ${state.pot_distribution[0].seat}`} Won the Hand!`}
-            </h3>
-          ) : state.pot_distribution?.length === 2 ? (
-            <h3 style={{ fontFamily: MONO, color: "var(--vw-color-text-muted)", margin: 0, fontSize: 20 }}>
-              Split Pot (Tie)
-            </h3>
-          ) : null}
-          {onAction && state.action_on === humanSeat && (
-            <button
-              style={{
-                background: "var(--vw-color-accent)",
-                color: "#000",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: 4,
-                cursor: "pointer",
-                fontFamily: MONO,
-                fontWeight: "bold",
-                fontSize: 14,
-              }}
-              onClick={() => onAction({ type: "ready" })}
-            >
-              Next Hand
-            </button>
-          )}
         </div>
       )}
 
@@ -170,10 +123,8 @@ export function ChinesePokerBoard({
           const info = handleBySeat.get(player.seat);
           const isActor = state.action_on === player.seat;
           const showDrawn = isActor && state.phase === "placing" && state.current_drawn_card;
-          
-          const isHumanTurn = isActor && player.seat === humanSeat && onAction;
-          const isInteractivePlacing = isHumanTurn && state.phase === "placing";
-          const isInteractiveBetting = isHumanTurn && state.phase === "betting";
+          const isInteractivePlacing =
+            isActor && player.seat === humanSeat && state.phase === "placing" && !!onAction;
 
           return (
             <div
@@ -193,13 +144,6 @@ export function ChinesePokerBoard({
                 position: "relative",
               }}
             >
-              {/* Dealer Button */}
-              {state.button === player.seat && (
-                <div style={{ position: "absolute", top: 8, right: 8 }}>
-                  <DealerButton />
-                </div>
-              )}
-
               {/* Player Header */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: MONO }}>
                 <span
@@ -213,20 +157,6 @@ export function ChinesePokerBoard({
                 <span style={{ color: "#fff", fontWeight: 600 }}>
                   {info?.handle ?? `seat ${player.seat}`}
                 </span>
-                {player.all_in && (
-                  <span style={{ color: "var(--vw-color-danger)", fontSize: 11, fontWeight: 700 }}>
-                    ALL-IN
-                  </span>
-                )}
-                {player.folded && (
-                  <span style={{ color: "var(--vw-color-text-muted)", fontSize: 11 }}>folded</span>
-                )}
-              </div>
-
-              {/* Stack & Actions */}
-              <div style={{ fontFamily: MONO, fontSize: 12, color: "var(--vw-color-text-muted)", display: "flex", justifyContent: "space-between" }}>
-                <span>stack: {player.stack}</span>
-                {player.committed_round > 0 && <span>bet: {player.committed_round}</span>}
               </div>
 
               {/* Hands */}
@@ -305,33 +235,6 @@ export function ChinesePokerBoard({
               {player.last_action && (
                 <div style={{ fontFamily: MONO, fontSize: 11, color: "var(--vw-color-accent)", textAlign: "center" }}>
                   {actionLabel(player.last_action)}
-                </div>
-              )}
-              
-              {/* Betting Controls */}
-              {isInteractiveBetting && onAction && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, justifyContent: "center" }}>
-                  <button 
-                    style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontFamily: MONO, fontSize: 12 }}
-                    onClick={() => onAction({ type: "fold" })}>Fold</button>
-                  <button 
-                    style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontFamily: MONO, fontSize: 12 }}
-                    onClick={() => onAction({ type: "check" })}>Check</button>
-                  <button 
-                    style={{ background: "rgba(163, 230, 53, 0.2)", border: "1px solid var(--vw-color-accent)", color: "white", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontFamily: MONO, fontSize: 12 }}
-                    onClick={() => onAction({ type: "call" })}>Call</button>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <input 
-                      type="number" 
-                      value={raiseAmount} 
-                      onChange={e => setRaiseAmount(e.target.value)} 
-                      style={{ width: 50, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "white", padding: "2px 4px", borderRadius: 4, fontFamily: MONO, fontSize: 12 }}
-                      placeholder="Amt"
-                    />
-                    <button 
-                      style={{ background: "rgba(244, 63, 94, 0.2)", border: "1px solid var(--vw-color-danger)", color: "white", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontFamily: MONO, fontSize: 12 }}
-                      onClick={() => onAction({ type: "raise", to: parseInt(raiseAmount) || 0 })}>Raise</button>
-                  </div>
                 </div>
               )}
 
