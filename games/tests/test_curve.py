@@ -57,7 +57,7 @@ def test_initial_state_is_seeded(curve: Curve) -> None:
 
 def test_wrong_player_count(curve: Curve) -> None:
     with pytest.raises(ValueError):
-        curve.initial_state(seed=1, num_players=2)
+        curve.initial_state(seed=1, num_players=1)
     with pytest.raises(ValueError):
         curve.initial_state(seed=1, num_players=5)
 

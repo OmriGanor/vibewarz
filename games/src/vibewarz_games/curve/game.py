@@ -117,7 +117,7 @@ class Curve(Game):
     meta = GameMeta(
         id="curve",
         display_name="Curve",
-        min_players=4,
+        min_players=2,
         max_players=4,
         tick_deadline_ms=50,
         tick_interval_ms=50,
