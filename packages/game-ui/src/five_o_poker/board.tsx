@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from "react";
 import { Card } from "../poker/card";
-import type { ChinesePokerPlayer, ChinesePokerState, ChinesePokerAction } from "./types";
+import type { FiveOPokerPlayer, FiveOPokerState, FiveOPokerAction } from "./types";
 
 const MONO = "ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace";
 
@@ -21,21 +21,21 @@ const headerCell: CSSProperties = {
   color: "var(--vw-color-text-muted)",
 };
 
-function actionLabel(a: ChinesePokerPlayer["last_action"]): string | null {
+function actionLabel(a: FiveOPokerPlayer["last_action"]): string | null {
   if (!a) return null;
   if (a.type === "place") return `place col ${a.column + 1}`;
   return null;
 }
 
-export function ChinesePokerBoard({
+export function FiveOPokerBoard({
   state,
   seatInfo,
   onAction,
   humanSeat,
 }: {
-  state: ChinesePokerState | null;
+  state: FiveOPokerState | null;
   seatInfo?: SeatInfo[];
-  onAction?: (action: ChinesePokerAction) => void;
+  onAction?: (action: FiveOPokerAction) => void;
   humanSeat?: number;
 }) {
   const handleBySeat = new Map(seatInfo?.map((s) => [s.seat, s]) ?? []);
@@ -71,7 +71,7 @@ export function ChinesePokerBoard({
 
   return (
     <div
-      className="vw-chinese-poker__board"
+      className="vw-five-o-poker__board"
       style={{
         position: "relative",
         width: "100%",
@@ -89,7 +89,7 @@ export function ChinesePokerBoard({
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: "1rem", alignItems: "baseline" }}>
           <span style={{ ...headerCell, color: "var(--vw-color-accent)" }}>
-            Chinese Poker
+            Five-O Poker
           </span>
           <span style={headerCell}>{state.phase}</span>
         </div>

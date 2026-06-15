@@ -1,21 +1,21 @@
-"""Human-interactive bot for Chinese Poker (Five-O)."""
+"""Human-interactive bot for Five-O Poker (Five-O)."""
 
 from __future__ import annotations
 
 from vibewarz import (
-    ChinesePokerBot,
-    ChinesePokerPlaceAction,
-    ChinesePokerState,
+    FiveOPokerBot,
+    FiveOPokerPlaceAction,
+    FiveOPokerState,
 )
 
 
-class ChinesePokerHumanBot(ChinesePokerBot):
+class FiveOPokerHumanBot(FiveOPokerBot):
     display_name = "Human"
 
-    def act(self, state: ChinesePokerState):
+    def act(self, state: FiveOPokerState):
         legal = self.legal_actions(state)
         if not legal:
-            return ChinesePokerPlaceAction(column=0)  # shouldn't be reached
+            return FiveOPokerPlaceAction(column=0)  # shouldn't be reached
 
         print("\n" + "=" * 40)
         print(f"--- Phase: {state.phase} ---")
@@ -34,7 +34,7 @@ class ChinesePokerHumanBot(ChinesePokerBot):
                 choice = input(f"Choose a column {legal_columns}: ").strip()
                 column = int(choice)
                 if column in legal_columns:
-                    return ChinesePokerPlaceAction(column=column)
+                    return FiveOPokerPlaceAction(column=column)
                 print("That column is not currently legal.")
             except (ValueError, EOFError) as e:
                 print(f"Invalid input: {e}")

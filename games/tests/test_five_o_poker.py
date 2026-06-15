@@ -1,15 +1,15 @@
-"""Tests for Chinese Poker (Five-O Rules) game engine."""
+"""Tests for Five-O Poker (Five-O Rules) game engine."""
 
 from __future__ import annotations
 
-from vibewarz_games.chinese_poker.game import (
+from vibewarz_games.five_o_poker.game import (
     CARDS_PER_COLUMN,
     NUM_COLUMNS,
-    ChinesePoker,
+    FiveOPoker,
 )
 
 
-def _play_to_end(cp: ChinesePoker, s: dict):
+def _play_to_end(cp: FiveOPoker, s: dict):
     """Drive a full game with default placements; return the final StepResult."""
     res = None
     for _ in range(cp.meta.max_ticks):
@@ -22,7 +22,7 @@ def _play_to_end(cp: ChinesePoker, s: dict):
 
 
 def test_initial_state():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=42, num_players=2)
     assert s["phase"] == "placing"
     assert s["action_on"] == 0
@@ -36,7 +36,7 @@ def test_initial_state():
 
 
 def test_placing_legal_actions_and_step():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=42, num_players=2)
     actor = s["action_on"]
     legal = cp.legal_actions(s, actor)
@@ -54,7 +54,7 @@ def test_placing_legal_actions_and_step():
 
 
 def test_pacing_rule():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=42, num_players=2)
     s = cp.step(s, {0: {"type": "place", "column": 0}}).state  # -> seat 1
     s = cp.step(s, {1: {"type": "place", "column": 0}}).state  # -> back to seat 0
@@ -68,7 +68,7 @@ def test_pacing_rule():
 
 
 def test_view_redacts_face_down_card():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=42, num_players=2)
     # Fill every column to 4 cards (indices 0..3) for both players.
     for _ in range(30):
@@ -89,7 +89,7 @@ def test_view_redacts_face_down_card():
 
 
 def test_full_game_resolves_to_a_winner():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=42, num_players=2)
     res = _play_to_end(cp, s)
     final = res.state
@@ -117,7 +117,7 @@ def test_full_game_resolves_to_a_winner():
 
 
 def test_showdown_reveals_opponent_cards():
-    cp = ChinesePoker()
+    cp = FiveOPoker()
     s = cp.initial_state(seed=7, num_players=2)
     final = _play_to_end(cp, s).state
     # At showdown nothing is redacted, for either seat's view.

@@ -31,14 +31,14 @@ export {
   type PokerTurnTimerOptions,
   type SeatInfo,
 } from "./poker/board";
-export { ChinesePokerReplay, buildChinesePokerFrames } from "./chinese_poker";
-export { ChinesePokerBoard } from "./chinese_poker/board";
+export { FiveOPokerReplay, buildFiveOPokerFrames } from "./five_o_poker";
+export { FiveOPokerBoard } from "./five_o_poker/board";
 export type {
-  ChinesePokerState,
-  ChinesePokerPlayer,
-  ChinesePokerPhase,
-  ChinesePokerAction,
-} from "./chinese_poker/types";
+  FiveOPokerState,
+  FiveOPokerPlayer,
+  FiveOPokerPhase,
+  FiveOPokerAction,
+} from "./five_o_poker/types";
 export { Card, CardRow, type CardSize } from "./poker/card";
 export { ChipStack, ChipPile, DealerButton } from "./poker/chip";
 export {

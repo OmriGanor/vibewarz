@@ -1,4 +1,4 @@
-"""Chinese Poker (Five-O Rules) game implementation.
+"""Five-O Poker game implementation.
 
 A single-deal, 2-player game where players build five 5-card hands (columns).
 It is "one and done" — there is no betting and no chips; one full board is
@@ -33,22 +33,22 @@ HIDDEN_CARD_INDEX: Final = 3  # 4th card per column is dealt face-down
 
 
 @register
-class ChinesePoker(Game):
+class FiveOPoker(Game):
     meta = GameMeta(
-        id="chinese_poker",
-        display_name="Chinese Poker",
+        id="five_o_poker",
+        display_name="Five-O Poker",
         min_players=2,
         max_players=2,
         tick_deadline_ms=15_000,
         tick_interval_ms=0,
         max_ticks=200,
         match_wait_ms=0,
-        description="Chinese Poker with Five-O Rules. Build five 5-card hands and beat your opponent in the most columns.",
+        description="Five-O Poker. Build five 5-card hands and beat your opponent in the most columns.",
     )
 
     def initial_state(self, seed: int, num_players: int) -> dict:
         if num_players != 2:
-            raise ValueError("Chinese Poker (Five-O) requires exactly 2 players.")
+            raise ValueError("Five-O Poker requires exactly 2 players.")
 
         deck = list(new_shuffled_deck(seed, 1))
         players = []

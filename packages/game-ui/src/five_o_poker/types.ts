@@ -1,22 +1,22 @@
-export type ChinesePokerPhase = "placing" | "done";
+export type FiveOPokerPhase = "placing" | "done";
 
-export type ChinesePokerAction = { type: "place"; column: number };
+export type FiveOPokerAction = { type: "place"; column: number };
 
-export type ChinesePokerPlayer = {
+export type FiveOPokerPlayer = {
   seat: number;
   columns: string[][];
-  last_action: ChinesePokerAction | null;
+  last_action: FiveOPokerAction | null;
 };
 
-export type ChinesePokerState = {
+export type FiveOPokerState = {
   tick: number;
-  phase: ChinesePokerPhase;
+  phase: FiveOPokerPhase;
   deck: string[];
   action_on: number | null;
-  players: ChinesePokerPlayer[];
+  players: FiveOPokerPlayer[];
   history: {
     seat: number;
-    action: ChinesePokerAction;
+    action: FiveOPokerAction;
   }[];
   placement: number[];
   winner: number | null;

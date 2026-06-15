@@ -3,32 +3,32 @@
 import { useMemo } from "react";
 import { PlaybackControls, usePlayback } from "./controls";
 import { ReplayFrame } from "./frame";
-import { ChinesePokerBoard, type SeatInfo } from "./chinese_poker/board";
-import type { ChinesePokerState } from "./chinese_poker/types";
+import { FiveOPokerBoard, type SeatInfo } from "./five_o_poker/board";
+import type { FiveOPokerState } from "./five_o_poker/types";
 import { seatLabel, type RawEvent, type RawGameEndEvt } from "./types";
 
-type Frame = { state: ChinesePokerState };
+type Frame = { state: FiveOPokerState };
 
-export function buildChinesePokerFrames(events: RawEvent[]): Frame[] {
+export function buildFiveOPokerFrames(events: RawEvent[]): Frame[] {
   const frames: Frame[] = [];
   for (const evt of events) {
     if (evt.type === "game_start" || evt.type === "tick_result") {
-      frames.push({ state: evt.state as ChinesePokerState });
+      frames.push({ state: evt.state as FiveOPokerState });
     }
   }
   return frames;
 }
 
-const CHINESE_POKER_TICKS_PER_SEC = 2;
+const FIVE_O_POKER_TICKS_PER_SEC = 2;
 
-export function ChinesePokerReplay({
+export function FiveOPokerReplay({
   events,
 }: {
   events: RawEvent[];
 }) {
-  const frames = useMemo(() => buildChinesePokerFrames(events), [events]);
+  const frames = useMemo(() => buildFiveOPokerFrames(events), [events]);
   const totalFrames = frames.length;
-  const playback = usePlayback(totalFrames, CHINESE_POKER_TICKS_PER_SEC);
+  const playback = usePlayback(totalFrames, FIVE_O_POKER_TICKS_PER_SEC);
   const current = frames[Math.min(playback.frame, Math.max(0, totalFrames - 1))];
   const finalPlacement =
     (events[events.length - 1] as RawGameEndEvt | undefined)?.placement ?? [];
@@ -68,7 +68,7 @@ export function ChinesePokerReplay({
         nativeRatio="16:9"
         brand={brand}
       >
-        <ChinesePokerBoard
+        <FiveOPokerBoard
           state={current.state}
           seatInfo={seatInfo}
         />

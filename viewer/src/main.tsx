@@ -4,7 +4,7 @@ import {
   BlastReplay,
   CurveReplay,
   PokerReplay,
-  ChinesePokerReplay,
+  FiveOPokerReplay,
   detectGameId,
   type RawReplay,
 } from "@vibewarz/game-ui";
@@ -71,8 +71,8 @@ function App() {
         <BlastReplay events={replay.events} />
       ) : game === "poker" ? (
         <PokerReplay events={replay.events} />
-      ) : game === "chinese_poker" ? (
-        <ChinesePokerReplay events={replay.events} />
+      ) : game === "five_o_poker" ? (
+        <FiveOPokerReplay events={replay.events} />
       ) : (
         <div className="vw-app__error">
           Replay loaded ({replay.events.length} events), but no renderer is
