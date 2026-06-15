@@ -24,6 +24,15 @@ from .curve import (
     CurveState,
     CurveTurn,
 )
+from .five_o_poker import (
+    FiveOPokerAction,
+    FiveOPokerBot,
+    FiveOPokerHistoryEntry,
+    FiveOPokerPhase,
+    FiveOPokerPlaceAction,
+    FiveOPokerPlayer,
+    FiveOPokerState,
+)
 from .poker import (
     PokerAction,
     PokerBetAction,
@@ -39,15 +48,6 @@ from .poker import (
     PokerRaiseAction,
     PokerSidePot,
     PokerState,
-)
-from .five_o_poker import (
-    FiveOPokerAction,
-    FiveOPokerPlaceAction,
-    FiveOPokerPlayer,
-    FiveOPokerHistoryEntry,
-    FiveOPokerPhase,
-    FiveOPokerState,
-    FiveOPokerBot,
 )
 from .vibelords import (
     VibelordsAction,
